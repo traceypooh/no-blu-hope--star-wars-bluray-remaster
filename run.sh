@@ -175,14 +175,22 @@ function credits(){
 
 
 function clips(){
-  LEFT=${1:?"Usage: clips [start .ts clip] [end .ts clip]  Returns range of clips (inclusive) between them"}
-  RITE=${2:?"Usage: clips [start .ts clip] [end .ts clip]  Returns range of clips (inclusive) between them"}
+  LEFT=${1:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
+  RITE=${2:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
 
   LEFT=$(echo "$LEFT" |perl -pe 's/\.ts$//');
   RITE=$(echo "$RITE" |perl -pe 's/\.ts$//');
 
-  # return the filenames in the wanted time range
-  /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts | fgrep -B10000 $RITE.ts;
+  if [[ $RITE =~ \\. ]]; then
+    # return the filenames in the wanted time range
+    /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts | fgrep -B10000 $RITE.ts;
+  elif [[ $RITE =~ \\- ]]; then
+    # eg "-10" which means return (up to) 10 clips -- the 9 clips before $LEFT and $LEFT
+    /bin/ls ?.??.??.?.ts |fgrep -B100000 $LEFT.ts | tail $RITE;
+  else
+    # eg "10" which means return (up to) 10 clips -- $LEFT and the 9 clips after $LEFT
+    /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts | head -$RITE;
+  fi
 }
 
 
@@ -215,9 +223,8 @@ EOF
 
 function replacements(){
 cat >| /tmp/.in <<EOF
-MVP xxx:
+Minimum Viable Product fixxxmes:
 
--kenobi hut
 -cantina: bagpiper
 -cantina: snaggletooth
 
@@ -228,7 +235,11 @@ MVP xxx:
 EOF
 }
 
-function stormtroopers-deadend(){ #xxx
+function stormtroopers-deadend(){
+  # We cant have Han round corner chasing stormtroopers and run into a new CG + BG "digital painting" of an entire
+  # galley of stormtroopers and such, now can we?
+  # In '77 Han runs around corner, only to find the troopers hav hit a deadend and they need to fight their way out...
+
   # keep the new audio
   cat 1.27.42.5.ts  1.27.43.5.ts >| new.ts; # 1.9s
   ffmpeg -y -i new.ts -c copy -vn newA.ts;
@@ -237,11 +248,12 @@ function stormtroopers-deadend(){ #xxx
   ffmpeg -y -ss 5150.53 -i negative1.mkv -shortest -t 1.0 -an -c copy 1977V.ts;
 
   # merge new audio and 1977 video
-  ffmpeg -y -i newA.ts -i 1977V.ts -c copy hmm.ts;
+  ffmpeg -y -i newA.ts -i 1977V.ts -c copy merged.ts;
 
-  seam  1.27.41*  hmm.ts  1.27.4[4-9]ts;
+  seam  1.27.41*  merged.ts  1.27.4[4-9]ts;
 
   mv seam.m2ts  stormtroopers-deadend.m2ts;
+  rm -f new.ts newA.ts 1977V.ts merged.ts;
 }
 
 function no-biggs(){
@@ -285,20 +297,50 @@ function eisley(){
   NIX=( 0.42.55.0.ts  0.43.16.4.ts  0.43.17.4.ts  0.43.18.4.ts  0.43.19.4.ts  0.43.20.0.ts ); #xxx 5.1 seconds more omitted
 
 
+  # copy the bluray (which now has extra CG shots removed) for that time range to a temp file:
   typeset -a REPLACE;   # array variable
   REPLACE=( $(clips  0.42.49.1.ts  0.44.52.3.ts) );
-  # copy the bluray (which now has extra CG shots removed) for that time range to a temp file:
-  seam $REPLACE;
+  cat $REPLACE >| blu.ts;
+
   # copy (just) the audio from the bluray for that time range:
-  ffmpeg -y -i seam.m2ts -vn -c:a copy  eisleyA.ts;
+  ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
 
   # copy (just) the video from 1977 for corresponding time range:
   # [ 0.43.07.5.ts   0:44:40.5.ts ]
   # (takes awhile by using frame-accurate seeking)
-  ffmpeg -i $OVID  -ss 00:43:07.5  -to 00:44:40.5  -an -c:v copy  eisleyV.ts;
+  ffmpeg -y -i $OVID  -ss 00:43:07.5  -to 00:44:40.5  -an -c:v copy  video.ts;
 
   # merge A/V
-  ffmpeg -y -i eisleyV.ts -i eisleyA.ts -c copy eisley.ts
+  ffmpeg -y -i video.ts -i audio.ts -c copy $0.ts;
+  rm -f blu.ts audio.ts video.ts;
+}
+function kenobi-hut(){
+  # copy the bluray for video we will replace to temp file:
+  typeset -a REPLACE; # array variable
+  LEFT=0.32.33.6.ts;#  NOTE: we need to go 1 bluray GOP backwards (than 0.32.34.6.ts) since the 1977 GOP spread is bigger
+  RITE=0.32.39.1.ts;#  NOTE: go 1 bluray GOP extra (than 0.32.38.4.ts) to get A/V to seam better
+  REPLACE=( $( clips $LEFT $RITE ) );
+  cat $REPLACE >| blu.ts;
+
+  # copy (just) the audio from the bluray for that time range:
+  ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
+
+  # copy (just) the video from 1977 for corresponding time range:
+  # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
+  ffmpeg -y -ss 1973.779 -i $OVID  -t 4.6  -an -c:v copy  video.ts;
+
+  # merge A/V
+  ffmpeg -y -i video.ts -i audio.ts -c copy $0.ts;
+
+  # now test it fully seamed in, with 10 clips (~9s) before and after
+  cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
+  cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
+  seam pre.ts $0.ts post.ts;
+  mv seam.m2ts $0-seamed.ts;
+
+  # cleanup
+  rm -f blu.ts audio.ts video.ts;
+  rm -f pre.ts post.ts;
 }
 
 function no-new-hope-DVD-EDL(){
