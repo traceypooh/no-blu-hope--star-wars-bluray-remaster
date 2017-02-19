@@ -318,7 +318,7 @@ function replacement-video(){
   mv seam.m2ts $OUTNAME-seamed.ts;
 
   # cleanup
-  rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/; #xxx
+  #rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/; #xxx
 }
 
 function kenobi-hut(){
@@ -372,21 +372,36 @@ function xwings-rounding-yavin(){
   replacement-video  6185.027  236  $0;
 }
 
+function dogfighting7(){
+  replacement-audio  1.49.08.9.ts  1.49.11.9.ts;
 
-function replacements(){
-cat >| /tmp/.in <<EOF
-Minimum Viable Product fixxxmes:
-
-?-sandcrawler day shot (would need to dissolve from "look sir, droids!")
-?-falcon landing in yavin
-?-dogfighting?
-EOF
+  #replacement-video  6410.127  71  $0;
+  replacement-video  6411.128  97  $0;
+  #replacement-video  6411.128  120  $0;
 }
 
-function no-new-hope-DVD-EDL(){
+
+function options77(){
+  HMS_OR_SEC=${1:?"Usage: $0 [HH:MM:SS or H:MM:SS or seconds]"}
+
+  if [[ $HMS_OR_SEC =~ : ]]; then
+    SEC=$(echo $HMS |php -R 'require_once(getenv("THISDIR")."/Video.inc"); echo Video::hms2sec($argn);');
+  else
+    SEC=$HMS_OR_SEC;
+  fi
+
+  echo SEC=$SEC;
+
+  PTS=$(egrep 'K_*$' negative1.packets |fgrep -m1 pts_time=$SEC |cut -f5 -d'|' |cut -f2 -d=);
+
+  # now show a bunch of options of durations and frame counts for keyframe-to-keyframe clipping
+  fgrep -A1000 pts_time=$PTS negative1.packets |egrep -n 'K_*$' |cut -f1,5 -d'|' |tr : = |cut -f1,3 -d= |tr = ' '|phpR 'list($f,$sec)=explode(" ",$argn); if (!$start) $start=$sec; echo "frames=$f\tduration=".round($sec-$start,4)."\tstart=$sec\n";';
+}
+
+
+function xxx(){
+# ?-sandcrawler day shot (would need to dissolve from "look sir, droids!")
 cat<<EOF
-REPLACE p[18922i-19083p]i WITH [18884i-19040p] NEWAUDIO  # sandcrawler1 (night)
-REPLACE p[21462i-21831p]i WITH [21422i-21789p] NEWAUDIO  # crawler night shot
 REPLACE i[141175b-141896p]i WITH [137558i-138278i] NEWAUDIO # falcon flying into yavin (plus pyramid shot)
 REPLACE p[151153b-151280p]i WITH [146918i-147044i] NEWAUDIO # xwings/ywings launching from yavin/ground
 REPLACE p[152198b-152302p]i WITH [147962i-148067p] NEWAUDIO # deathstar dogfighting
@@ -399,6 +414,5 @@ REPLACE p[157022p-157183p]i WITH [152786i-152948i] NEWAUDIO # deathstar dogfight
 REPLACE p[157274i-157416p]i WITH [153038i-153176p] NEWAUDIO # deathstar dogfighting
 REPLACE p[160836i-160926p]i WITH [156602i-156692i] NEWAUDIO # deathstar dogfighting
 REPLACE p[168344p-168391p]i WITH [164108i-164156p] NEWAUDIO # deathstar dogfighting
-REPLACE i[168668b-168727p]i WITH [164432i-164489p] NEWAUDIO # racing away from deathstar
 EOF
 }
