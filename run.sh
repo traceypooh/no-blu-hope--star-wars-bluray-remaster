@@ -65,7 +65,7 @@ function extraction(){
 # xxx to avoid "bloops" when doing REMOVE and REPLACE operations, try keeping REMOVED keyframe and merge into the _prior_ GOP since B-frames, eg:
 #  ffmpeg -i nix/0.15.10.3.ts  -c copy  -vframes 1 -copyts -shortest  0.15.10.3.ts
 function seam(){
-  rm -rfv  seam;
+  rm -rf   seam/;
   mkdir -p seam;
   touch seam/concat.txt;
   for i in "$@"; do
@@ -258,66 +258,25 @@ function dewbacks(){ #xxx still may have some issues?  xxx do want to "hold" fir
   mv  seam.m2ts  dewbacks.m2ts;
 }
 
-function eisley-orig(){
-  # replace starting with and including the endpoints (inclusive)
-  # keeping part (just before; ends with) "mos eisley spaceport, you will never find..";
-  # replacing (just after) from start of: speeder zips in from outskirts of mos eisley..
-  #   all the way to..
-  # cantina!  start of da funk!
-
-
-  # copy the bluray (which now has extra CG shots removed) for that time range to a temp file:
-  typeset -a REPLACE;   # array variable
-  REPLACE=( $(clips  0.42.49.1.ts  0.44.52.3.ts) );
-  cat $REPLACE >| blu.ts;
-
-  # copy (just) the audio from the bluray for that time range:
-  ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
-
-  # copy (just) the video from 1977 for corresponding time range:
-  # [ 0.43.07.5.ts   0:44:40.5.ts ]
-  # (takes awhile by using frame-accurate seeking)
-  ffmpeg -y -i $OVID  -ss 00:43:07.5  -to 00:44:40.5  -an -c:v copy  video.ts;
-
-  # merge A/V
-  ffmpeg -y -i video.ts -i audio.ts -c copy $0.ts;
-  rm -f blu.ts audio.ts video.ts;
-}
-
-function eisley(){
-  # replace starting with and including the endpoints (inclusive)
-  # keeping part (just before; ends with) "mos eisley spaceport, you will never find..";
-  # replacing (just after) from start of: speeder zips in from outskirts of mos eisley..
-  #   all the way to..
-  # cantina!  start of da funk!
-
-  replacement-audio  0.42.49.1.ts  0.44.52.3.ts; #93.5s (!)
-
-  #replacement-video  2587.725  2258  $0;
-
-  ffmpeg -y -i $OVID  -ss 00:43:07.5  -to 00:44:40.5  -an -c:v copy  video.ts;
-  ffmpeg -y -i video.ts -i audio.ts -c copy $0.ts;
-}
-
 function replacement-audio(){
   # copies (just) the bluray audio, for the video portion we will be replacing, to audio.ts
-  export LEFT=${1:?"Usage: $0 [first clip to replace] [last clip to replace]"}
-  export RITE=${2:?"Usage: $0 [first clip to replace] [last clip to replace]"}
+  export LEFT=${1:?"Usage: $0 [first clip to replace] [last clip to replace] <optional ffmpeg args>"}
+  export RITE=${2:?"Usage: $0 [first clip to replace] [last clip to replace] <optional ffmpeg args>"}
 
   typeset -a REPLACE; # array variable
   REPLACE=( $( clips $LEFT $RITE ) );
   cat $REPLACE >| blu.ts;
 
   # copy (just) the audio from the bluray for that time range:
-  ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
+  ffmpeg -y -i blu.ts -vn -c:a copy  $3 $4 $5 $6 $7 $8 $9  audio.ts;
 }
 
 
 function replacement-video(){
   # Copies (just)  the 1977 video for a portion we are replacing.
   # Uses $LEFT and $RITE, merging with "audio.ts", from prior "replacement-audio" step to OUTNAME.ts
-  SEEK=${1:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
-  FRAMES=${2:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
+  SEEK=${1:?   "Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
+  FRAMES=${2:? "Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
   OUTNAME=${3:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
 
   # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
@@ -334,10 +293,29 @@ function replacement-video(){
   cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
   cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
   seam pre.ts $OUTNAME.ts post.ts;
-  mv seam.m2ts $OUTNAME-seamed.ts;
+  ffmpeg -y -i seam.m2ts -c copy $OUTNAME-seamed.ts;
 
   # cleanup
-  #rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/; #xxx
+  #rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/ seam.m2ts; #xxx
+}
+
+
+function eisley(){
+  # keep part (just before; ends with) "mos eisley spaceport, you will never find..";
+  # replacing (just after) from start of: speeder zips in from outskirts of mos eisley..
+  #   all the way to..
+  # cantina!  start of da funk!
+
+  # Copy the bluray audio (which now has two extra CG shots in the middle removed) for this time range
+  # We will break the audio into the three contiguous pieces (92.8s)
+  # so we can re-seam them together with collapsed sequential PTS
+  cat $(clips 0.42.49.1.ts 0.42.54.1.ts) |ffmpeg -y -f mpegts -i - -vn -c:a copy a.ts;
+  cat $(clips 0.43.20.5.ts 0.43.59.5.ts) |ffmpeg -y -f mpegts -i - -vn -c:a copy b.ts;
+  cat $(clips 0.44.05.3.ts 0.44.52.3.ts) |ffmpeg -y -f mpegts -i - -vn -c:a copy c.ts;
+  seam a.ts b.ts c.ts
+  ffmpeg -y -i seam.m2ts -c copy audio.ts;
+
+  replacement-video  2587.725  2258  $0;
 }
 
 function kenobi-hut(){
@@ -371,7 +349,7 @@ function cantina-outside(){
   replacement-audio  0.47.35.2.ts  0.47.41.9.ts;
 
   # NOTE: capture slightly MORE video than will be replacing to get (exactly) 9 keyframes and 8 GOPs cleanly
-  replacement-video  2844.023  200  $0;
+  replacement-video  2844.023  185202  $0;
 }
 
 function stormtroopers-deadend(){
@@ -445,5 +423,5 @@ function options77(){
   PTS=$(egrep 'K_*$' negative1.packets |fgrep -m1 pts_time=$SEC |cut -f5 -d'|' |cut -f2 -d=);
 
   # now show a bunch of options of durations and frame counts for keyframe-to-keyframe clipping
-  fgrep -A2500 pts_time=$PTS negative1.packets |egrep -n 'K_*$' |cut -f1,5 -d'|' |tr : = |cut -f1,3 -d= |tr = ' '|phpR 'list($f,$sec)=explode(" ",$argn); if (!$start) $start=$sec; echo "frames=$f\tduration=".round($sec-$start,4)."\tstart=$sec\n";';
+  fgrep -A1000 pts_time=$PTS negative1.packets |egrep -n 'K_*$' |cut -f1,5 -d'|' |tr : = |cut -f1,3 -d= |tr = ' '|phpR 'list($f,$sec)=explode(" ",$argn); if (!$start) $start=$sec; echo "frames=$f\tduration=".round($sec-$start,4)."\tstart=$sec\n";';
 }
