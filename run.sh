@@ -25,6 +25,8 @@ export OVID="$D1/tmp/negative1.mkv"; # siver screen negative1 Jan 11,2016 first 
 # PS3: 1080p 5.1 AAC mp4 works -- ffmpeg -i orig.m2ts -c:v copy -c:a libfaac -ac 6  1080p-aac-5.1.mp4
 # xxx may need CFR and not VFR  (DVD version played  Audio: ac3, 48000 Hz, 5.1(side), fltp, 448 kb/s)
 # xxx may need to always pull PS3 network cable *when watching mp4 or burned bluray* due to audio signature checking
+# appleTV _should_ be able to do Dolby Digital 5.1 (AKA AC-3)...  _maybe_ at 24fps ?!
+# xxx? sandcrawler day shot (would need to dissolve from "look sir, droids!")
 
 export THISDIR=$(dirname "$0");
 echo "SCRIPT DIR: $THISDIR";
@@ -202,6 +204,7 @@ cat >| /tmp/.in <<EOF
   0.15.10.3   0.15.32.6 # patrol dewbacks
   0.42.55.9   0.43.15.4 # entering mos eisley
   0.44.00.3   0.44.04.9 # entering mos eisley2
+  0.42.55.0   0.43.20.0 # entering mos eisley3 audio excess
   0.52.41.7   0.54.13.8 # jabba
   0.55.37.5   0.55.40.3 # falcon takeoff mos eisley
   1.43.15.3   1.43.44.2 # biggs
@@ -215,7 +218,7 @@ EOF
 
     set -x;
     mkdir -p nix/$SLUG;
-    mv $(ls |fgrep -A100000 $FROM.ts | fgrep -B10000 $TO.ts) nix/$SLUG/
+    mv $(clips  $FROM.ts  $TO.ts) nix/$SLUG/
     set +x;
   done;
   rm /tmp/.in;
@@ -255,15 +258,12 @@ function dewbacks(){ #xxx still may have some issues?  xxx do want to "hold" fir
   mv  seam.m2ts  dewbacks.m2ts;
 }
 
-function eisley(){
+function eisley-orig(){
   # replace starting with and including the endpoints (inclusive)
   # keeping part (just before; ends with) "mos eisley spaceport, you will never find..";
   # replacing (just after) from start of: speeder zips in from outskirts of mos eisley..
   #   all the way to..
   # cantina!  start of da funk!
-
-  typeset -a NIX;   # array variable
-  NIX=( 0.42.55.0.ts  0.43.16.4.ts  0.43.17.4.ts  0.43.18.4.ts  0.43.19.4.ts  0.43.20.0.ts ); #xxx 5.1 seconds more omitted
 
 
   # copy the bluray (which now has extra CG shots removed) for that time range to a temp file:
@@ -284,6 +284,21 @@ function eisley(){
   rm -f blu.ts audio.ts video.ts;
 }
 
+function eisley(){
+  # replace starting with and including the endpoints (inclusive)
+  # keeping part (just before; ends with) "mos eisley spaceport, you will never find..";
+  # replacing (just after) from start of: speeder zips in from outskirts of mos eisley..
+  #   all the way to..
+  # cantina!  start of da funk!
+
+  replacement-audio  0.42.49.1.ts  0.44.52.3.ts; #93.5s (!)
+
+  #replacement-video  2587.725  2258  $0;
+
+  ffmpeg -y -i $OVID  -ss 00:43:07.5  -to 00:44:40.5  -an -c:v copy  video.ts;
+  ffmpeg -y -i video.ts -i audio.ts -c copy $0.ts;
+}
+
 function replacement-audio(){
   # copies (just) the bluray audio, for the video portion we will be replacing, to audio.ts
   export LEFT=${1:?"Usage: $0 [first clip to replace] [last clip to replace]"}
@@ -297,6 +312,7 @@ function replacement-audio(){
   ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
 }
 
+
 function replacement-video(){
   # Copies (just)  the 1977 video for a portion we are replacing.
   # Uses $LEFT and $RITE, merging with "audio.ts", from prior "replacement-audio" step to OUTNAME.ts
@@ -306,6 +322,9 @@ function replacement-video(){
 
   # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
   ffmpeg -y -ss $SEEK -i $OVID  -frames $FRAMES  -an -c:v copy  video.ts;
+
+  vpackets video.ts |tail -1 |egrep '=K_*$';
+  if [ "$?" != "0" ]; then echo; echo "FATAL video.ts didnt end in keyframe"; return; fi
 
   # merge A/V
   # NOTE: use -shortest to drop longer audio/video
@@ -365,8 +384,19 @@ function stormtroopers-deadend(){
   replacement-video  5150.53   47  $0;
 }
 
+function falcon-arrives-yavin(){
+  replacement-audio  1.38.08.2.ts  1.38.37.4.ts; #29.7s
+  replacement-video  5776.453  715  $0;
+}
+
+function xwings-leaving-yavin(){
+  replacement-audio  1.45.04.1.ts  1.45.08.8.ts; #5.2s
+
+  replacement-video  6166.342  139  $0;
+}
+
 function xwings-rounding-yavin(){
-  replacement-audio  1.45.22.1.ts   1.45.32.1.ts; #10.7s
+  replacement-audio  1.45.22.1.ts  1.45.32.1.ts; #10.7s
 
   # get 12 keyframes / 11 GOPs
   replacement-video  6185.027  236  $0;
@@ -415,11 +445,5 @@ function options77(){
   PTS=$(egrep 'K_*$' negative1.packets |fgrep -m1 pts_time=$SEC |cut -f5 -d'|' |cut -f2 -d=);
 
   # now show a bunch of options of durations and frame counts for keyframe-to-keyframe clipping
-  fgrep -A1000 pts_time=$PTS negative1.packets |egrep -n 'K_*$' |cut -f1,5 -d'|' |tr : = |cut -f1,3 -d= |tr = ' '|phpR 'list($f,$sec)=explode(" ",$argn); if (!$start) $start=$sec; echo "frames=$f\tduration=".round($sec-$start,4)."\tstart=$sec\n";';
+  fgrep -A2500 pts_time=$PTS negative1.packets |egrep -n 'K_*$' |cut -f1,5 -d'|' |tr : = |cut -f1,3 -d= |tr = ' '|phpR 'list($f,$sec)=explode(" ",$argn); if (!$start) $start=$sec; echo "frames=$f\tduration=".round($sec-$start,4)."\tstart=$sec\n";';
 }
-
-
-
-# sandcrawler day shot (would need to dissolve from "look sir, droids!")    xxx?
-# falcon flying into yavin (plus pyramid shot)  xxx?
-# xwings/ywings launching from yavin/ground  xxx?
