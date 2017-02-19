@@ -32,6 +32,7 @@ export THISDIR=$(dirname "$0");
 echo "SCRIPT DIR: $THISDIR";
 
 function mp(){ /Applications/MPlayerX.app/Contents/MacOS/MPlayerX -framedrop hard "$@"; }
+function line () {perl -e 'print "_"x80; print "\n\n";'; }
 
 function setup(){
   brew install ffmpeg; # includes ffprobe
@@ -74,6 +75,18 @@ function seam(){
   done
   cat seam/concat.txt;
   ffmpeg -y -f concat -i seam/concat.txt -codec copy -f mpegts -fflags +genpts -async 1 seam.m2ts;
+}
+
+function seamTS(){
+  rm -rf   seam/;
+  mkdir -p seam;
+  touch seam/concat.txt;
+  for i in "$@"; do
+    ln -s ../$i seam/$i;
+    echo "file '$i'" >> seam/concat.txt;
+  done
+  cat seam/concat.txt;
+  ffmpeg -y -f concat -i seam/concat.txt -codec copy -f mpegts -fflags +genpts -async 1 seam.ts;
 }
 
 function pts(){
@@ -178,21 +191,21 @@ function credits(){
 
 
 function clips(){
-  LEFT=${1:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
-  RITE=${2:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
+  local LEFT=${1:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
+  local RITE=${2:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
 
   LEFT=$(echo "$LEFT" |perl -pe 's/\.ts$//');
   RITE=$(echo "$RITE" |perl -pe 's/\.ts$//');
 
   if [[ $RITE =~ \\. ]]; then
     # return the filenames in the wanted time range
-    /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts | fgrep -B10000 $RITE.ts;
+    /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts |fgrep -B10000 $RITE.ts;
   elif [[ $RITE =~ \\- ]]; then
     # eg "-10" which means return (up to) 10 clips -- the 9 clips before $LEFT and $LEFT
-    /bin/ls ?.??.??.?.ts |fgrep -B100000 $LEFT.ts | tail $RITE;
+    /bin/ls ?.??.??.?.ts |fgrep -B100000 $LEFT.ts |tail $RITE;
   else
     # eg "10" which means return (up to) 10 clips -- $LEFT and the 9 clips after $LEFT
-    /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts | head -$RITE;
+    /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts |head -$RITE;
   fi
 }
 
@@ -201,7 +214,7 @@ function cuts(){
   # inclusive ranges
 cat >| /tmp/.in <<EOF
   0.11.20.6   0.11.24.9 # fade to sky to r2 in canyon
-  0.15.10.3   0.15.32.6 # patrol dewbacks
+  0.15.10.3   0.15.32.6 # patrol dewbacks #xxx
   0.42.55.0   0.43.15.4 # entering mos eisley
   0.44.00.3   0.44.04.9 # entering mos eisley2
   0.43.16.4   0.43.20.0 # entering mos eisley3 audio excess
@@ -261,8 +274,10 @@ function test-seam(){
   # now test it fully seamed in, with 10 clips (~9s) before and after
   cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
   cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
-  seam pre.ts $OUTNAME.ts post.ts;
-  ffmpeg -y -i seam.m2ts -c copy $OUTNAME-seamed.ts;
+  seamTS pre.ts $OUTNAME.ts post.ts;
+  mv seam.ts $OUTNAME-seamed.ts;
+#  seam pre.ts $OUTNAME.ts post.ts;
+#  ffmpeg -y -i seam.m2ts -c copy $OUTNAME-seamed.ts;
 }
 
 function replacement-audio(){
@@ -302,8 +317,33 @@ function replacement-video(){
 }
 
 
+function patrol-dewbacks(){
+  typeset -a KEEPA_DROPV;
+  KEEPA_DROPV=( 0.15.46.8.ts 0.15.47.8.ts 0.15.48.8.ts 0.15.49.8.ts );
 
-function patrol-dewbacks(){ #xxx still may have some issues?  xxx do want to "hold" first keyframe of "b.ts" a bit??
+#  line; echo; echo; echo "NOTE: FETCHING DROPPED VIDEO FOR AUDIO PATCHING: $KEEPA_DROPV"; echo; echo; line;
+#  cd nix/patrol-dewbacks;
+#  mv  $KEEPA_DROPV  ../..;
+#  cd -;
+
+#  replacement-audio   0.15.25.2.ts   0.15.46.8.ts; #22.5s
+#  replacement-audio   0.15.25.2.ts   0.15.45.8.ts; #21.5s
+
+  replacement-audio   0.15.25.2.ts   0.15.44.8.ts; #20.5s
+
+
+
+#  line; echo; echo; echo "NOTE: RETURNING DROPPED VIDEO: $KEEPA_DROPV"; echo; echo; line;
+#  mv  $KEEPA_DROPV  nix/patrol-dewbacks;
+
+  # NOTE: now this is the logical "new RITE" clip that we still have
+  #RITE=0.15.45.8.ts;
+  #replacement-video  950.798  553  $0;
+
+  replacement-video  951.758  580  $0;
+}
+
+function patrol-dewbacks-orig-video-has-issues(){
 
   LEFT=0.15.00.7.ts;
   RITE=0.15.39.6.ts;
@@ -314,12 +354,14 @@ function patrol-dewbacks(){ #xxx still may have some issues?  xxx do want to "ho
   ffmpeg -y -i b.ts  -g 1 -q:v 0 -c:a copy -g 1 b2.ts;
 
   seam  a2.ts  b2.ts
+  ( echo file 'a2.ts'; echo file 'b2.ts' ) >| concat.txt;
 
-  ffmpeg -y -i seam.m2ts -c copy $0.ts;
+  # this is the most tool-friendly (mplayer, melt, QuickTime) version
+  ffmpeg -y -f concat -i concat.txt -codec copy -fflags +genpts -async 1  $0.ts;
 
-  test-seam $LEFT $RITE $0;
+  test-seam $LEFT  $RITE  $0; #xxx but still having problems here!
 
-  #rm a.ts b.ts a2.ts b2.ts seam.m2ts; #xxx
+  #rm a.ts b.ts a2.ts b2.ts concat.txt; #xxx
 }
 
 
