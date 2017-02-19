@@ -257,9 +257,12 @@ function test-seam(){
   OUTNAME=${3:?"Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
 
   # now test it fully seamed in, with 10 clips (~9s) before and after
-  cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
-  cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
-  seamTS pre.ts $OUTNAME.ts post.ts;
+  # (cat nothing as final arg, in case there are no clips that match (eg: credits has nothing prior, etc.))
+  cat $(clips $LEFT -10 |fgrep -v $LEFT) /dev/null >| pre.ts;
+  cat $(clips $RITE  10 |fgrep -v $RITE) /dev/null >| post.ts;
+  find . -name  pre.ts -empty -delete;
+  find . -name post.ts -empty -delete;
+  seamTS $(/bin/ls pre.ts $OUTNAME.ts post.ts 2>/dev/null);
   mv seam.ts $OUTNAME-seamed.ts;
 }
 
@@ -301,47 +304,16 @@ function replacement-video(){
 
 
 function credits(){
-  # we'll be replacing the VIDEO (keep AUDIO) of this range of clips (inclusive)
-  cat $(clips 0.00.01.4.ts 0.01.54.7.ts) > creditsNIX.ts;
-  ffmpeg -i creditsNIX.ts -vn -c:a copy creditsA.ts;
-  rm creditsNIX.ts;
-
   # start of 42s was observed from manually watching $OVID
-  # however!  bluray has a 1.4s offset, so updated a bit
-  # 114.1s was found via dumping A/V packets in creditsNIX.ts and summing
-  ffmpeg -i "$OVID" -ss 41 -t 114.1 -an -c:v copy creditsV.ts;
-
-  ffmpeg -i creditsA.ts -i creditsV.ts -c copy creditsNEW.ts;
+  replacement-audio  0.00.01.4.ts  0.01.54.7.ts; #114.1s
+  replacement-video  42.975  2754  $0;
 }
-
 
 
 function patrol-dewbacks(){
   replacement-audio   0.15.25.2.ts   0.15.44.8.ts; #20.5s
   replacement-video  951.758  507  $0;
 }
-
-function patrol-dewbacks-orig-video-has-issues-not-used(){
-
-  LEFT=0.15.00.7.ts;
-  RITE=0.15.39.6.ts;
-  cat $( clips $LEFT        0.15.09.3.ts ) >| a.ts;
-  cat $( clips 0.15.33.6.ts $RITE        ) >| b.ts;
-
-  ffmpeg -y -i a.ts  -g 1 -q:v 0 -c:a copy -g 1 a2.ts;
-  ffmpeg -y -i b.ts  -g 1 -q:v 0 -c:a copy -g 1 b2.ts;
-
-  seam  a2.ts  b2.ts
-  ( echo file 'a2.ts'; echo file 'b2.ts' ) >| concat.txt;
-
-  # this is the most tool-friendly (mplayer, melt, QuickTime) version
-  ffmpeg -y -f concat -i concat.txt -codec copy -fflags +genpts -async 1  $0.ts;
-
-  test-seam $LEFT  $RITE  $0; # ... but still had problems here!
-
-  rm a.ts b.ts a2.ts b2.ts concat.txt;
-}
-
 
 function eisley(){
   # keep part (just before; ends with) "mos eisley spaceport, you will never find..";
@@ -454,7 +426,8 @@ function dogfight4(){
 
 
 function options77(){
-  HMS_OR_SEC=${1:?"Usage: $0 [HH:MM:SS or H:MM:SS or seconds]"}
+  HMS_OR_SEC=${1:?"Usage: $0 [HH:MM:SS or H:MM:SS or seconds] <optional number frames to check, default 1000>"}
+  NFRAMES=${2:-"1000"};
 
   if [[ $HMS_OR_SEC =~ : ]]; then
     HMS=$HMS_OR_SEC;
@@ -470,5 +443,28 @@ function options77(){
   PTS=$(egrep 'K_*$' negative1.packets |fgrep -m1 pts_time=$SEC |cut -f5 -d'|' |cut -f2 -d=);
 
   # now show a bunch of options of durations and frame counts for keyframe-to-keyframe clipping
-  fgrep -A1000 pts_time=$PTS negative1.packets |egrep -n 'K_*$' |cut -f1,5 -d'|' |tr : = |cut -f1,3 -d= |tr = ' '|phpR 'list($f,$sec)=explode(" ",$argn); if (!$start) $start=$sec; echo "frames=$f\tduration=".round($sec-$start,4)."\tstart=$sec\n";';
+  fgrep -A$NFRAMES pts_time=$PTS negative1.packets |egrep -n 'K_*$' |cut -f1,5 -d'|' |tr : = |cut -f1,3 -d= |tr = ' '|phpR 'list($f,$sec)=explode(" ",$argn); if (!$start) $start=$sec; echo "frames=$f\tduration=".round($sec-$start,4)."\tstart=$sec\n";';
+}
+
+
+
+function NOT-USED-patrol-dewbacks-orig(){ # had issues
+
+  LEFT=0.15.00.7.ts;
+  RITE=0.15.39.6.ts;
+  cat $( clips $LEFT        0.15.09.3.ts ) >| a.ts;
+  cat $( clips 0.15.33.6.ts $RITE        ) >| b.ts;
+
+  ffmpeg -y -i a.ts  -g 1 -q:v 0 -c:a copy -g 1 a2.ts;
+  ffmpeg -y -i b.ts  -g 1 -q:v 0 -c:a copy -g 1 b2.ts;
+
+  seam  a2.ts  b2.ts
+  ( echo file 'a2.ts'; echo file 'b2.ts' ) >| concat.txt;
+
+  # this is the most tool-friendly (mplayer, melt, QuickTime) version
+  ffmpeg -y -f concat -i concat.txt -codec copy -fflags +genpts -async 1  $0.ts;
+
+  test-seam $LEFT  $RITE  $0; # ... but still had problems here!
+
+  rm a.ts b.ts a2.ts b2.ts concat.txt;
 }
