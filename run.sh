@@ -33,6 +33,7 @@ function mp(){ /Applications/MPlayerX.app/Contents/MacOS/MPlayerX "$@"; }
 
 function setup(){
   brew install ffmpeg; # includes ffprobe
+  brew install mlt;    # handy for editing, playback, and especially playing one frame at a time back/forth
 }
 
 function extraction(){
@@ -329,8 +330,7 @@ function kenobi-hut(){
   mv seam.m2ts $0-seamed.ts;
 
   # cleanup
-  rm -f blu.ts audio.ts video.ts;
-  rm -f pre.ts post.ts;
+  rm -f blu.ts audio.ts video.ts pre.ts post.ts seam/;
 }
 
 function cantina-bagpiper(){
@@ -363,17 +363,43 @@ function cantina-bagpiper(){
   mv seam.m2ts $0-seamed.ts;
 
   # cleanup
-  rm -f blu.ts audio.ts video.ts;
-  rm -f pre.ts post.ts;
+  rm -f blu.ts audio.ts video.ts pre.ts post.ts seam/;
 }
 
+function cantina-snaggletooth(){
+  # copy the bluray for video we will replace to temp file:
+  typeset -a REPLACE; # array variable
+  LEFT=0.46.15.3.ts;
+  RITE=0.46.18.2.ts;
+  REPLACE=( $( clips $LEFT $RITE ) );
+  cat $REPLACE >| blu.ts;
+
+  # copy (just) the audio from the bluray for that time range:
+  ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
+
+  # copy (just) the video from 1977 for corresponding time range:
+  # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
+  # NOTE: we'll capture slightly LESS video than we will be replacing to get (exactly) 3 keyframes and 3 GOPs cleanly
+  #       because o/w we have a rough seam/transition (and ~0.5s audio being removed ends up OK -- choices!)
+  ffmpeg -y -ss 2764.027 -i $OVID  -frames 70  -an -c:v copy  video.ts;
+
+  # merge A/V
+  # NOTE: use -shortest to drop ~1/2 second (7 video frames) since the keeping audio is longer than the replacing video
+  ffmpeg -y -i video.ts -i audio.ts -c copy -shortest $0.ts;
+
+  # now test it fully seamed in, with 10 clips (~9s) before and after
+  cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
+  cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
+  seam pre.ts $0.ts post.ts;
+  mv seam.m2ts $0-seamed.ts;
+
+  # cleanup
+  rm -f blu.ts audio.ts video.ts pre.ts post.ts seam/;
+}
 
 function replacements(){
 cat >| /tmp/.in <<EOF
 Minimum Viable Product fixxxmes:
-
--cantina: bagpiper
--cantina: snaggletooth
 
 ?-sandcrawler day shot (would need to dissolve from "look sir, droids!")
 ?-falcon landing in yavin
