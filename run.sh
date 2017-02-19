@@ -202,9 +202,9 @@ function cuts(){
 cat >| /tmp/.in <<EOF
   0.11.20.6   0.11.24.9 # fade to sky to r2 in canyon
   0.15.10.3   0.15.32.6 # patrol dewbacks
-  0.42.55.9   0.43.15.4 # entering mos eisley
+  0.42.55.0   0.43.15.4 # entering mos eisley
   0.44.00.3   0.44.04.9 # entering mos eisley2
-  0.42.55.0   0.43.20.0 # entering mos eisley3 audio excess
+  0.43.16.4   0.43.20.0 # entering mos eisley3 audio excess
   0.52.41.7   0.54.13.8 # jabba
   0.55.37.5   0.55.40.3 # falcon takeoff mos eisley
   1.43.15.3   1.43.44.2 # biggs
@@ -243,8 +243,14 @@ function no-biggs(){
 }
 
 function greedo(){
+  if [ -e nix/greedo-trimmed/0.50.54.7.ts ]; then
+    echo "already done and not rerunnable";
+    return;
+  fi
+
   ffmpeg -i 0.50.54.7.ts -c copy -vframes 11 trimmed.ts;
-  mv  0.50.54.7.ts  nix/;
+  mkdir nix/greedo-trimmed
+  mv  0.50.54.7.ts  nix/greedo-trimmed/;
   mv  trimmed.ts  0.50.54.7.ts;
 }
 
@@ -309,10 +315,13 @@ function eisley(){
   # Copy the bluray audio (which now has two extra CG shots in the middle removed) for this time range
   # We will break the audio into the three contiguous pieces (92.8s)
   # so we can re-seam them together with collapsed sequential PTS
-  cat $(clips 0.42.49.1.ts 0.42.54.1.ts) |ffmpeg -y -f mpegts -i - -vn -c:a copy a.ts;
+  LEFT=0.42.49.1.ts; # (set for replacement-video below)
+  RITE=0.44.52.3.ts; # (set for replacement-video below)
+  cat $(clips $LEFT        0.42.54.1.ts) |ffmpeg -y -f mpegts -i - -vn -c:a copy a.ts;
   cat $(clips 0.43.20.5.ts 0.43.59.5.ts) |ffmpeg -y -f mpegts -i - -vn -c:a copy b.ts;
-  cat $(clips 0.44.05.3.ts 0.44.52.3.ts) |ffmpeg -y -f mpegts -i - -vn -c:a copy c.ts;
-  seam a.ts b.ts c.ts
+  cat $(clips 0.44.05.3.ts        $RITE) |ffmpeg -y -f mpegts -i - -vn -c:a copy c.ts;
+  seam a.ts b.ts c.ts;
+  rm   a.ts b.ts c.ts;
   ffmpeg -y -i seam.m2ts -c copy audio.ts;
 
   replacement-video  2587.725  2258  $0;
