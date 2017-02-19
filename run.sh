@@ -63,7 +63,7 @@ function extraction(){
 #   then ffmpeg concat them.  that should mean _at most_ that many pops/seam oddities...
 
 # xxx to avoid "bloops" when doing REMOVE and REPLACE operations, try keeping REMOVED keyframe and merge into the _prior_ GOP since B-frames, eg:
-#  ffmpeg -i nix/0.15.10.3.ts  -c copy  -vframes 1 -copyts -shortest  0.15.10.3.ts
+#  ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
 function seam(){
   rm -rf   seam/;
   mkdir -p seam;
@@ -248,20 +248,21 @@ function greedo(){
     return;
   fi
 
-  ffmpeg -i 0.50.54.7.ts -c copy -vframes 11 trimmed.ts;
-  mkdir nix/greedo-trimmed
-  mv  0.50.54.7.ts  nix/greedo-trimmed/;
-  mv  trimmed.ts  0.50.54.7.ts;
+  mkdir             nix/greedo-trimmed;
+  mv  0.50.54.7.ts  nix/greedo-trimmed;
+  ffmpeg -i nix/greedo-trimmed/0.50.54.7.ts -c copy -frames 11 0.50.54.7.ts;
 }
 
-function dewbacks(){ #xxx still may have some issues?  xxx do want to "hold" first keyframe of "b.ts" a bit??
+function test-seam(){
+  LEFT=${1:?   "Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
+  RITE=${2:?   "Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
+  OUTNAME=${3:?"Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
 
-  # 0.15.10.3.ts  # dissolve wipe just barely "leaks" clipped dewback scene -- so removed
-  cat $( clips 0.15.00.7.ts 0.15.09.3.ts ) >| a.ts;
-  cat $( clips 0.15.33.6.ts 0.15.39.6.ts ) >| b.ts;
-  seam  a.ts  b.ts;
-  rm a.ts b.ts;
-  mv  seam.m2ts  dewbacks.m2ts;
+  # now test it fully seamed in, with 10 clips (~9s) before and after
+  cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
+  cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
+  seam pre.ts $OUTNAME.ts post.ts;
+  ffmpeg -y -i seam.m2ts -c copy $OUTNAME-seamed.ts;
 }
 
 function replacement-audio(){
@@ -276,7 +277,6 @@ function replacement-audio(){
   # copy (just) the audio from the bluray for that time range:
   ffmpeg -y -i blu.ts -vn -c:a copy  $3 $4 $5 $6 $7 $8 $9  audio.ts;
 }
-
 
 function replacement-video(){
   # Copies (just)  the 1977 video for a portion we are replacing.
@@ -295,14 +295,31 @@ function replacement-video(){
   # NOTE: use -shortest to drop longer audio/video
   ffmpeg -y -i video.ts -i audio.ts -c copy -shortest $OUTNAME.ts;
 
-  # now test it fully seamed in, with 10 clips (~9s) before and after
-  cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
-  cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
-  seam pre.ts $OUTNAME.ts post.ts;
-  ffmpeg -y -i seam.m2ts -c copy $OUTNAME-seamed.ts;
+  test-seam $LEFT $RITE $OUTNAME;
 
   # cleanup
   #rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/ seam.m2ts; #xxx
+}
+
+
+
+function patrol-dewbacks(){ #xxx still may have some issues?  xxx do want to "hold" first keyframe of "b.ts" a bit??
+
+  LEFT=0.15.00.7.ts;
+  RITE=0.15.39.6.ts;
+  cat $( clips $LEFT        0.15.09.3.ts ) >| a.ts;
+  cat $( clips 0.15.33.6.ts $RITE        ) >| b.ts;
+
+  ffmpeg -y -i a.ts  -g 1 -q:v 0 -c:a copy -g 1 a2.ts;
+  ffmpeg -y -i b.ts  -g 1 -q:v 0 -c:a copy -g 1 b2.ts;
+
+  seam  a2.ts  b2.ts
+
+  ffmpeg -y -i seam.m2ts -c copy $0.ts;
+
+  test-seam $LEFT $RITE $0;
+
+  #rm a.ts b.ts a2.ts b2.ts seam.m2ts; #xxx
 }
 
 
