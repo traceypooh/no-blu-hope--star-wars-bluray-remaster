@@ -284,7 +284,7 @@ function eisley(){
   rm -f blu.ts audio.ts video.ts;
 }
 
-function keep-audio(){
+function replacement-audio(){
   # copies (just) the bluray audio, for the video portion we will be replacing, to audio.ts
   export LEFT=${1:?"Usage: $0 [first clip to replace] [last clip to replace]"}
   export RITE=${2:?"Usage: $0 [first clip to replace] [last clip to replace]"}
@@ -299,7 +299,7 @@ function keep-audio(){
 
 function replacement-video(){
   # Copies (just)  the 1977 video for a portion we are replacing.
-  # Uses $LEFT and $RITE, merging with "audio.ts", from prior "keep-audio" step to OUTNAME.ts
+  # Uses $LEFT and $RITE, merging with "audio.ts", from prior "replacement-audio" step to OUTNAME.ts
   SEEK=${1:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
   FRAMES=${2:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
   OUTNAME=${3:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
@@ -318,13 +318,13 @@ function replacement-video(){
   mv seam.m2ts $OUTNAME-seamed.ts;
 
   # cleanup
-  rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/;
+  rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/; #xxx
 }
 
 function kenobi-hut(){
   # NOTE: we need to go 1 bluray GOP backwards (than 0.32.34.6.ts) since the 1977 GOP spread is bigger
   # NOTE: go 1 bluray GOP extra (than 0.32.38.4.ts) to get A/V to seam better
-  keep-audio  0.32.33.6.ts  0.32.39.1.ts;
+  replacement-audio  0.32.33.6.ts  0.32.39.1.ts;
 
   # NOTE: we'll capture slightly MORE video than we want/will use to get (exactly) 7 keyframes and 6 GOP cleanly
   replacement-video  1973.779  140  $0;
@@ -333,14 +333,14 @@ function kenobi-hut(){
 function cantina-bagpiper(){
   # 1977 had a red-eyed "werewolf" growl directly at camera.
   # bluray repalced with a "bagpiper"-esque hookah pipe smoking CG character.
-  keep-audio  0.45.02.0.ts  0.45.04.8.ts;
+  replacement-audio  0.45.02.0.ts  0.45.04.8.ts;
 
   # NOTE: we'll capture slightly MORE video than we want/will use to get (exactly) 5 keyframes and 4 GOPs cleanly
   replacement-video  2690.495  93  $0;
 }
 
 function cantina-snaggletooth(){
-  keep-audio  0.46.15.3.ts  0.46.18.2.ts;
+  replacement-audio  0.46.15.3.ts  0.46.18.2.ts;
 
   # NOTE: we'll capture slightly LESS video than we will be replacing to get (exactly) 4 keyframes and 3 GOPs cleanly
   #       because o/w we have a rough seam/transition (and ~0.5s audio being removed ends up OK -- choices!)
@@ -349,7 +349,7 @@ function cantina-snaggletooth(){
 
 function cantina-outside(){
   # CG lizards with disembarking troopers added when threepio says "I dont like the look of this" outside
-  keep-audio  0.47.35.2.ts  0.47.41.9.ts;
+  replacement-audio  0.47.35.2.ts  0.47.41.9.ts;
 
   # NOTE: capture slightly MORE video than will be replacing to get (exactly) 9 keyframes and 8 GOPs cleanly
   replacement-video  2844.023  200  $0;
@@ -359,10 +359,17 @@ function stormtroopers-deadend(){
   # We cant have Han round corner chasing stormtroopers and run into a new CG + BG "digital painting" of an entire
   # galley of stormtroopers and such, now can we?
   # In '77 Han runs around corner, only to find the troopers hav hit a deadend and they need to fight their way out...
-  keep-audio  1.27.42.5.ts  1.27.43.5.ts; # 1.9s
+  replacement-audio  1.27.42.5.ts  1.27.43.5.ts; # 1.9s
 
   # this gets us 3 keyframes bookending 2 GOPs, from 1977 video
   replacement-video  5150.53   47  $0;
+}
+
+function xwings-rounding-yavin(){
+  replacement-audio  1.45.22.1.ts   1.45.32.1.ts; #10.7s
+
+  # get 12 keyframes / 11 GOPs
+  replacement-video  6185.027  236  $0;
 }
 
 
@@ -372,7 +379,6 @@ Minimum Viable Product fixxxmes:
 
 ?-sandcrawler day shot (would need to dissolve from "look sir, droids!")
 ?-falcon landing in yavin
-?-xwings emgerging around planet to face death star
 ?-dogfighting?
 EOF
 }
@@ -383,7 +389,6 @@ REPLACE p[18922i-19083p]i WITH [18884i-19040p] NEWAUDIO  # sandcrawler1 (night)
 REPLACE p[21462i-21831p]i WITH [21422i-21789p] NEWAUDIO  # crawler night shot
 REPLACE i[141175b-141896p]i WITH [137558i-138278i] NEWAUDIO # falcon flying into yavin (plus pyramid shot)
 REPLACE p[151153b-151280p]i WITH [146918i-147044i] NEWAUDIO # xwings/ywings launching from yavin/ground
-REPLACE p[151587i-151844p]i WITH [147350i-147608p] NEWAUDIO # xwings/ywings shortly after rounding planet
 REPLACE p[152198b-152302p]i WITH [147962i-148067p] NEWAUDIO # deathstar dogfighting
 REPLACE p[152919b-153285p]i WITH [148682i-149051p] NEWAUDIO # deathstar dogfighting
 REPLACE p[153675b-153758p]i WITH [149438i-149522p] NEWAUDIO # deathstar dogfighting
