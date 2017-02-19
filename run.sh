@@ -174,21 +174,6 @@ function seam-across-cuts(){
 }
 
 
-function credits(){
-  # we'll be replacing the VIDEO (keep AUDIO) of this range of clips (inclusive)
-  cat $(clips 0.00.01.4.ts 0.01.54.7.ts) > creditsNIX.ts;
-  ffmpeg -i creditsNIX.ts -vn -c:a copy creditsA.ts;
-  rm creditsNIX.ts;
-
-  # start of 42s was observed from manually watching $OVID
-  # however!  bluray has a 1.4s offset, so updated a bit
-  # 114.1s was found via dumping A/V packets in creditsNIX.ts and summing
-  ffmpeg -i "$OVID" -ss 41 -t 114.1 -an -c:v copy creditsV.ts;
-
-  ffmpeg -i creditsA.ts -i creditsV.ts -c copy creditsNEW.ts;
-}
-
-
 function clips(){
   local LEFT=${1:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
   local RITE=${2:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
@@ -213,7 +198,8 @@ function cuts(){
   # inclusive ranges
 cat >| /tmp/.in <<EOF
   0.11.20.6   0.11.24.9 # fade to sky to r2 in canyon
-  0.15.10.3   0.15.32.6 # patrol dewbacks #xxx
+  0.15.10.3   0.15.24.2 # patrol dewbacks1
+  0.15.45.8   0.15.51.3 # patrol dewbacks2
   0.42.55.0   0.43.15.4 # entering mos eisley
   0.44.00.3   0.44.04.9 # entering mos eisley2
   0.43.16.4   0.43.20.0 # entering mos eisley3 audio excess
@@ -312,6 +298,22 @@ function replacement-video(){
   # cleanup
   #rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/; #xxx
 }
+
+
+function credits(){
+  # we'll be replacing the VIDEO (keep AUDIO) of this range of clips (inclusive)
+  cat $(clips 0.00.01.4.ts 0.01.54.7.ts) > creditsNIX.ts;
+  ffmpeg -i creditsNIX.ts -vn -c:a copy creditsA.ts;
+  rm creditsNIX.ts;
+
+  # start of 42s was observed from manually watching $OVID
+  # however!  bluray has a 1.4s offset, so updated a bit
+  # 114.1s was found via dumping A/V packets in creditsNIX.ts and summing
+  ffmpeg -i "$OVID" -ss 41 -t 114.1 -an -c:v copy creditsV.ts;
+
+  ffmpeg -i creditsA.ts -i creditsV.ts -c copy creditsNEW.ts;
+}
+
 
 
 function patrol-dewbacks(){
