@@ -26,7 +26,6 @@ export OVID="$D1/tmp/negative1.mkv"; # siver screen negative1 Jan 11,2016 first 
 # xxx may need CFR and not VFR  (DVD version played  Audio: ac3, 48000 Hz, 5.1(side), fltp, 448 kb/s)
 # xxx may need to always pull PS3 network cable *when watching mp4 or burned bluray* due to audio signature checking
 # appleTV _should_ be able to do Dolby Digital 5.1 (AKA AC-3)...  _maybe_ at 24fps ?!
-# xxx? sandcrawler day shot (would need to dissolve from "look sir, droids!")
 
 export THISDIR=$(dirname "$0");
 echo "SCRIPT DIR: $THISDIR";
@@ -77,7 +76,7 @@ function seam(){
   ffmpeg -y -f concat -i seam/concat.txt -codec copy -f mpegts -fflags +genpts -async 1 seam.m2ts;
 }
 
-function seamTS(){
+function seamTS(){ #xxx convert _everywhere_ to this?
   rm -rf   seam/;
   mkdir -p seam;
   touch seam/concat.txt;
@@ -276,8 +275,6 @@ function test-seam(){
   cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
   seamTS pre.ts $OUTNAME.ts post.ts;
   mv seam.ts $OUTNAME-seamed.ts;
-#  seam pre.ts $OUTNAME.ts post.ts;
-#  ffmpeg -y -i seam.m2ts -c copy $OUTNAME-seamed.ts;
 }
 
 function replacement-audio(){
@@ -313,37 +310,16 @@ function replacement-video(){
   test-seam $LEFT $RITE $OUTNAME;
 
   # cleanup
-  #rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/ seam.m2ts; #xxx
+  #rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/; #xxx
 }
 
 
 function patrol-dewbacks(){
-  typeset -a KEEPA_DROPV;
-  KEEPA_DROPV=( 0.15.46.8.ts 0.15.47.8.ts 0.15.48.8.ts 0.15.49.8.ts );
-
-#  line; echo; echo; echo "NOTE: FETCHING DROPPED VIDEO FOR AUDIO PATCHING: $KEEPA_DROPV"; echo; echo; line;
-#  cd nix/patrol-dewbacks;
-#  mv  $KEEPA_DROPV  ../..;
-#  cd -;
-
-#  replacement-audio   0.15.25.2.ts   0.15.46.8.ts; #22.5s
-#  replacement-audio   0.15.25.2.ts   0.15.45.8.ts; #21.5s
-
   replacement-audio   0.15.25.2.ts   0.15.44.8.ts; #20.5s
-
-
-
-#  line; echo; echo; echo "NOTE: RETURNING DROPPED VIDEO: $KEEPA_DROPV"; echo; echo; line;
-#  mv  $KEEPA_DROPV  nix/patrol-dewbacks;
-
-  # NOTE: now this is the logical "new RITE" clip that we still have
-  #RITE=0.15.45.8.ts;
-  #replacement-video  950.798  553  $0;
-
-  replacement-video  951.758  580  $0;
+  replacement-video  951.758  507  $0;
 }
 
-function patrol-dewbacks-orig-video-has-issues(){
+function patrol-dewbacks-orig-video-has-issues-not-used(){
 
   LEFT=0.15.00.7.ts;
   RITE=0.15.39.6.ts;
@@ -359,9 +335,9 @@ function patrol-dewbacks-orig-video-has-issues(){
   # this is the most tool-friendly (mplayer, melt, QuickTime) version
   ffmpeg -y -f concat -i concat.txt -codec copy -fflags +genpts -async 1  $0.ts;
 
-  test-seam $LEFT  $RITE  $0; #xxx but still having problems here!
+  test-seam $LEFT  $RITE  $0; # ... but still had problems here!
 
-  #rm a.ts b.ts a2.ts b2.ts concat.txt; #xxx
+  rm a.ts b.ts a2.ts b2.ts concat.txt;
 }
 
 
@@ -380,10 +356,11 @@ function eisley(){
   cat $(clips 0.43.20.5.ts 0.43.59.5.ts) |ffmpeg -y -f mpegts -i - -vn -c:a copy b.ts;
   cat $(clips 0.44.05.3.ts        $RITE) |ffmpeg -y -f mpegts -i - -vn -c:a copy c.ts;
   seam a.ts b.ts c.ts;
-  rm   a.ts b.ts c.ts;
   ffmpeg -y -i seam.m2ts -c copy audio.ts;
 
   replacement-video  2587.725  2258  $0;
+
+  rm a.ts b.ts c.ts seam.m2ts;
 }
 
 function kenobi-hut(){
