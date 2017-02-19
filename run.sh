@@ -305,96 +305,75 @@ function eisley(){
   rm -f blu.ts audio.ts video.ts;
 }
 
-function kenobi-hut(){
-  # copy the bluray for video we will replace to temp file:
+function keep-audio(){
+  # copies (just) the bluray audio, for the video portion we will be replacing, to audio.ts
+  export LEFT=${1:?"Usage: $0 [first clip to replace] [last clip to replace]"}
+  export RITE=${2:?"Usage: $0 [first clip to replace] [last clip to replace]"}
+
   typeset -a REPLACE; # array variable
-  LEFT=0.32.33.6.ts;#  NOTE: we need to go 1 bluray GOP backwards (than 0.32.34.6.ts) since the 1977 GOP spread is bigger
-  RITE=0.32.39.1.ts;#  NOTE: go 1 bluray GOP extra (than 0.32.38.4.ts) to get A/V to seam better
   REPLACE=( $( clips $LEFT $RITE ) );
   cat $REPLACE >| blu.ts;
 
   # copy (just) the audio from the bluray for that time range:
   ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
+}
 
-  # copy (just) the video from 1977 for corresponding time range:
+function replacement-video(){
+  # Copies (just)  the 1977 video for a portion we are replacing.
+  # Uses $LEFT and $RITE, merging with "audio.ts", from prior "keep-audio" step to OUTNAME.ts
+  SEEK=${1:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
+  FRAMES=${2:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
+  OUTNAME=${3:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
+
   # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
-  ffmpeg -y -ss 1973.779 -i $OVID  -t 4.6  -an -c:v copy  video.ts;
+  ffmpeg -y -ss $SEEK -i $OVID  -frames $FRAMES  -an -c:v copy  video.ts;
 
   # merge A/V
-  ffmpeg -y -i video.ts -i audio.ts -c copy $0.ts;
+  # NOTE: use -shortest to drop longer audio/video
+  ffmpeg -y -i video.ts -i audio.ts -c copy -shortest $OUTNAME.ts;
 
   # now test it fully seamed in, with 10 clips (~9s) before and after
   cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
   cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
-  seam pre.ts $0.ts post.ts;
-  mv seam.m2ts $0-seamed.ts;
+  seam pre.ts $OUTNAME.ts post.ts;
+  mv seam.m2ts $OUTNAME-seamed.ts;
 
   # cleanup
-  rm -f blu.ts audio.ts video.ts pre.ts post.ts seam/;
+  rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/;
+}
+
+function kenobi-hut(){
+  # NOTE: we need to go 1 bluray GOP backwards (than 0.32.34.6.ts) since the 1977 GOP spread is bigger
+  # NOTE: go 1 bluray GOP extra (than 0.32.38.4.ts) to get A/V to seam better
+  keep-audio  0.32.33.6.ts  0.32.39.1.ts;
+
+  # NOTE: we'll capture slightly MORE video than we want/will use to get (exactly) 7 keyframes and 6 GOP cleanly
+  replacement-video  1973.779  140  $0;
 }
 
 function cantina-bagpiper(){
   # 1977 had a red-eyed "werewolf" growl directly at camera.
   # bluray repalced with a "bagpiper"-esque hookah pipe smoking CG character.
+  keep-audio  0.45.02.0.ts  0.45.04.8.ts;
 
-  # copy the bluray for video we will replace to temp file:
-  typeset -a REPLACE; # array variable
-  LEFT=0.45.02.0.ts;
-  RITE=0.45.04.8.ts;
-  REPLACE=( $( clips $LEFT $RITE ) );
-  cat $REPLACE >| blu.ts;
-
-  # copy (just) the audio from the bluray for that time range:
-  ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
-
-  # copy (just) the video from 1977 for corresponding time range:
-  # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
-  # NOTE: we'll capture slightly more video than we want/will use to get (exactly) 5 keyframes and 4 GOPs cleanly
-  ffmpeg -y -ss 2690.495 -i $OVID  -frames 93  -an -c:v copy  video.ts;
-
-  # merge A/V
-  # NOTE: use -shortest to drop ~1/2 second (7 video frames) since the keeping audio is longer than the replacing video
-  ffmpeg -y -i video.ts -i audio.ts -c copy -shortest $0.ts;
-
-  # now test it fully seamed in, with 10 clips (~9s) before and after
-  cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
-  cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
-  seam pre.ts $0.ts post.ts;
-  mv seam.m2ts $0-seamed.ts;
-
-  # cleanup
-  rm -f blu.ts audio.ts video.ts pre.ts post.ts seam/;
+  # NOTE: we'll capture slightly MORE video than we want/will use to get (exactly) 5 keyframes and 4 GOPs cleanly
+  replacement-video  2690.495  93  $0;
 }
 
 function cantina-snaggletooth(){
-  # copy the bluray for video we will replace to temp file:
-  typeset -a REPLACE; # array variable
-  LEFT=0.46.15.3.ts;
-  RITE=0.46.18.2.ts;
-  REPLACE=( $( clips $LEFT $RITE ) );
-  cat $REPLACE >| blu.ts;
+  keep-audio  0.46.15.3.ts  0.46.18.2.ts;
 
-  # copy (just) the audio from the bluray for that time range:
-  ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
-
-  # copy (just) the video from 1977 for corresponding time range:
-  # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
-  # NOTE: we'll capture slightly LESS video than we will be replacing to get (exactly) 3 keyframes and 3 GOPs cleanly
+  # NOTE: we'll capture slightly LESS video than we will be replacing to get (exactly) 4 keyframes and 3 GOPs cleanly
   #       because o/w we have a rough seam/transition (and ~0.5s audio being removed ends up OK -- choices!)
-  ffmpeg -y -ss 2764.027 -i $OVID  -frames 70  -an -c:v copy  video.ts;
+  replacement-video  2764.027  70  $0;
+}
 
-  # merge A/V
-  # NOTE: use -shortest to drop ~1/2 second (7 video frames) since the keeping audio is longer than the replacing video
-  ffmpeg -y -i video.ts -i audio.ts -c copy -shortest $0.ts;
+function cantina-outside(){
+  # CG lizards with disembarking troopers added when threepio says "I dont like the look of this" outside
+  keep-audio  0.47.35.2.ts  0.47.41.9.ts;
 
-  # now test it fully seamed in, with 10 clips (~9s) before and after
-  cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
-  cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
-  seam pre.ts $0.ts post.ts;
-  mv seam.m2ts $0-seamed.ts;
-
-  # cleanup
-  rm -f blu.ts audio.ts video.ts pre.ts post.ts seam/;
+  # NOTE: capture slightly MORE video than will be replacing to get (exactly) 9 keyframes and 8 GOPs cleanly
+  replacement-video  2844.023  200  $0;
 }
 
 function replacements(){
@@ -410,27 +389,9 @@ EOF
 
 function no-new-hope-DVD-EDL(){
 cat<<EOF
-REPLACE i[25b-3544p]i WITH [0i-3521p] NEWAUDIO # credits
-REMOVE  p[16312b-16465p]i  # r2d2 tatooine sky
 REPLACE p[18922i-19083p]i WITH [18884i-19040p] NEWAUDIO  # sandcrawler1 (night)
 REPLACE p[21462i-21831p]i WITH [21422i-21789p] NEWAUDIO  # crawler night shot
-REMOVE  p[21832b-22221p]i  # middle lizards added stuff
-REPLACE p[22221b-22810p]i WITH [21800i-22289p] OLDAUDIO   # snipping out lizards to final crawler shot
-REPLACE p[46855b-46967p]i WITH [46334i-46445p] NEWAUDIO  # kenobi hut
-REPLACE p[61599b-61646p]i WITH [61076i-61123p] NEWAUDIO  # speeding into mos eisley
-REMOVE p[61646b-62280p]i
-REPLACE p[62281b-63299p]i WITH [61123i-62141p] NEWAUDIO # to "move along"
-REMOVE p[63300i-63420i]i
-REPLACE p[63421i-64567p]i WITH [62142i-63287p] NEWAUDIO # speeder moving thru city after "move along" TO enter cantina
-REPLACE p[64785b-64861p]i WITH [63506i-63581p] NEWAUDIO  # replace bagpiper back w/ werewolf
-REPLACE p[66538i-66622p]i WITH [65270i-65342i] NEWAUDIO  # replace new snaggletooth w/ old
-REPLACE p[68458b-68627p]i WITH [67178i-67346p] NEWAUDIO  # outside cantina: before meet solo
-REMOVE  p[73247i-73265i]i  # greedo shoots first
-REMOVE  p[75802b-78039b]i  # jabba
-REMOVE  p[80028i-80110p]i  # falcon takeoff
-REPLACE p[126181b-126227p]i WITH [122564i-122609p] NEWAUDIO # stormtroopers dead end
 REPLACE i[141175b-141896p]i WITH [137558i-138278i] NEWAUDIO # falcon flying into yavin (plus pyramid shot)
-REMOVE  p[148544b-149259b]i  # biggs
 REPLACE p[151153b-151280p]i WITH [146918i-147044i] NEWAUDIO # xwings/ywings launching from yavin/ground
 REPLACE p[151587i-151844p]i WITH [147350i-147608p] NEWAUDIO # xwings/ywings shortly after rounding planet
 REPLACE p[152198b-152302p]i WITH [147962i-148067p] NEWAUDIO # deathstar dogfighting
@@ -444,6 +405,5 @@ REPLACE p[157274i-157416p]i WITH [153038i-153176p] NEWAUDIO # deathstar dogfight
 REPLACE p[160836i-160926p]i WITH [156602i-156692i] NEWAUDIO # deathstar dogfighting
 REPLACE p[168344p-168391p]i WITH [164108i-164156p] NEWAUDIO # deathstar dogfighting
 REPLACE i[168668b-168727p]i WITH [164432i-164489p] NEWAUDIO # racing away from deathstar
-REPLACE p[173004b-179471i]i WITH [168770i-174252p] OLDAUDIO # credits
 EOF
 }
