@@ -221,20 +221,6 @@ EOF
 }
 
 
-function replacements(){
-cat >| /tmp/.in <<EOF
-Minimum Viable Product fixxxmes:
-
--cantina: bagpiper
--cantina: snaggletooth
-
-?-sandcrawler day shot (would need to dissolve from "look sir, droids!")
-?-falcon landing in yavin
-?-xwings emgerging around planet to face death star
-?-dogfighting?
-EOF
-}
-
 function stormtroopers-deadend(){
   # We cant have Han round corner chasing stormtroopers and run into a new CG + BG "digital painting" of an entire
   # galley of stormtroopers and such, now can we?
@@ -272,11 +258,13 @@ function no-biggs(){
   seam  a.ts  1.43.14.3.ts  b.ts  1.43.45.2.ts;
   mv seam.m2ts no-biggs.m2ts;
 }
+
 function greedo(){
   ffmpeg -i 0.50.54.7.ts -c copy -vframes 11 trimmed.ts;
   mv  0.50.54.7.ts  nix/;
   mv  trimmed.ts  0.50.54.7.ts;
 }
+
 function dewbacks(){ #xxx still may have some issues?  xxx do want to "hold" first keyframe of "b.ts" a bit??
 
   # 0.15.10.3.ts  # dissolve wipe just barely "leaks" clipped dewback scene -- so removed
@@ -286,6 +274,7 @@ function dewbacks(){ #xxx still may have some issues?  xxx do want to "hold" fir
   rm a.ts b.ts;
   mv  seam.m2ts  dewbacks.m2ts;
 }
+
 function eisley(){
   # replace starting with and including the endpoints (inclusive)
   # keeping part (just before; ends with) "mos eisley spaceport, you will never find..";
@@ -314,6 +303,7 @@ function eisley(){
   ffmpeg -y -i video.ts -i audio.ts -c copy $0.ts;
   rm -f blu.ts audio.ts video.ts;
 }
+
 function kenobi-hut(){
   # copy the bluray for video we will replace to temp file:
   typeset -a REPLACE; # array variable
@@ -341,6 +331,55 @@ function kenobi-hut(){
   # cleanup
   rm -f blu.ts audio.ts video.ts;
   rm -f pre.ts post.ts;
+}
+
+function cantina-bagpiper(){
+  # 1977 had a red-eyed "werewolf" growl directly at camera.
+  # bluray repalced with a "bagpiper"-esque hookah pipe smoking CG character.
+
+  # copy the bluray for video we will replace to temp file:
+  typeset -a REPLACE; # array variable
+  LEFT=0.45.02.0.ts;
+  RITE=0.45.04.8.ts;
+  REPLACE=( $( clips $LEFT $RITE ) );
+  cat $REPLACE >| blu.ts;
+
+  # copy (just) the audio from the bluray for that time range:
+  ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
+
+  # copy (just) the video from 1977 for corresponding time range:
+  # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
+  # NOTE: we'll capture slightly more video than we want/will use to get (exactly) 5 keyframes and 4 GOPs cleanly
+  ffmpeg -y -ss 2690.495 -i $OVID  -frames 93  -an -c:v copy  video.ts;
+
+  # merge A/V
+  # NOTE: use -shortest to drop ~1/2 second (7 video frames) since the keeping audio is longer than the replacing video
+  ffmpeg -y -i video.ts -i audio.ts -c copy -shortest $0.ts;
+
+  # now test it fully seamed in, with 10 clips (~9s) before and after
+  cat $(clips $LEFT -10 |fgrep -v $LEFT) >| pre.ts;
+  cat $(clips $RITE  10 |fgrep -v $RITE) >| post.ts;
+  seam pre.ts $0.ts post.ts;
+  mv seam.m2ts $0-seamed.ts;
+
+  # cleanup
+  rm -f blu.ts audio.ts video.ts;
+  rm -f pre.ts post.ts;
+}
+
+
+function replacements(){
+cat >| /tmp/.in <<EOF
+Minimum Viable Product fixxxmes:
+
+-cantina: bagpiper
+-cantina: snaggletooth
+
+?-sandcrawler day shot (would need to dissolve from "look sir, droids!")
+?-falcon landing in yavin
+?-xwings emgerging around planet to face death star
+?-dogfighting?
+EOF
 }
 
 function no-new-hope-DVD-EDL(){
