@@ -372,12 +372,26 @@ function xwings-rounding-yavin(){
   replacement-video  6185.027  236  $0;
 }
 
-function dogfighting7(){
+function dogfight0(){
+  replacement-audio  1.46.21.6.ts  1.46.23.2.ts; # 2s
+  replacement-video  6244.504  52  $0;
+}
+
+function dogfight1(){ # xxx there is a slight tower firing repeat here..
+  replacement-audio  1.46.31.5.ts  1.46.32.3.ts; # 1.5s
+  replacement-video  6253.346  47  $0;
+}
+
+function dogfight2(){
+  replacement-audio  1.47.40.0.ts  1.47.41.1.ts; #1.9s
+  replacement-video  6322.331  48  $0;
+}
+
+
+function dogfight7(){
   replacement-audio  1.49.08.9.ts  1.49.11.9.ts;
 
-  #replacement-video  6410.127  71  $0;
   replacement-video  6411.128  97  $0;
-  #replacement-video  6411.128  120  $0;
 }
 
 
@@ -385,12 +399,15 @@ function options77(){
   HMS_OR_SEC=${1:?"Usage: $0 [HH:MM:SS or H:MM:SS or seconds]"}
 
   if [[ $HMS_OR_SEC =~ : ]]; then
+    HMS=$HMS_OR_SEC;
     SEC=$(echo $HMS |php -R 'require_once(getenv("THISDIR")."/Video.inc"); echo Video::hms2sec($argn);');
   else
     SEC=$HMS_OR_SEC;
+    HMS=$(echo $SEC |php -R 'require_once(getenv("THISDIR")."/Video.inc"); echo Video::hms($argn);');
   fi
 
   echo SEC=$SEC;
+  echo HMS=$HMS;
 
   PTS=$(egrep 'K_*$' negative1.packets |fgrep -m1 pts_time=$SEC |cut -f5 -d'|' |cut -f2 -d=);
 
@@ -399,20 +416,7 @@ function options77(){
 }
 
 
-function xxx(){
-# ?-sandcrawler day shot (would need to dissolve from "look sir, droids!")
-cat<<EOF
-REPLACE i[141175b-141896p]i WITH [137558i-138278i] NEWAUDIO # falcon flying into yavin (plus pyramid shot)
-REPLACE p[151153b-151280p]i WITH [146918i-147044i] NEWAUDIO # xwings/ywings launching from yavin/ground
-REPLACE p[152198b-152302p]i WITH [147962i-148067p] NEWAUDIO # deathstar dogfighting
-REPLACE p[152919b-153285p]i WITH [148682i-149051p] NEWAUDIO # deathstar dogfighting
-REPLACE p[153675b-153758p]i WITH [149438i-149522p] NEWAUDIO # deathstar dogfighting
-REPLACE p[154893i-154939p]i WITH [150662i-150704p] NEWAUDIO # deathstar dogfighting
-REPLACE p[155565b-155626b]i WITH [151328i-151391p] NEWAUDIO # deathstar dogfighting
-REPLACE p[155816b-156133p]i WITH [151580i-151898i] NEWAUDIO # deathstar dogfighting
-REPLACE p[157022p-157183p]i WITH [152786i-152948i] NEWAUDIO # deathstar dogfighting
-REPLACE p[157274i-157416p]i WITH [153038i-153176p] NEWAUDIO # deathstar dogfighting
-REPLACE p[160836i-160926p]i WITH [156602i-156692i] NEWAUDIO # deathstar dogfighting
-REPLACE p[168344p-168391p]i WITH [164108i-164156p] NEWAUDIO # deathstar dogfighting
-EOF
-}
+
+# sandcrawler day shot (would need to dissolve from "look sir, droids!")    xxx?
+# falcon flying into yavin (plus pyramid shot)  xxx?
+# xwings/ywings launching from yavin/ground  xxx?
