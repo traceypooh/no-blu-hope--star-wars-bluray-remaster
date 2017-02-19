@@ -29,7 +29,7 @@ export OVID="$D1/tmp/negative1.mkv"; # siver screen negative1 Jan 11,2016 first 
 export THISDIR=$(dirname "$0");
 echo "SCRIPT DIR: $THISDIR";
 
-function mp(){ /Applications/MPlayerX.app/Contents/MacOS/MPlayerX "$@"; }
+function mp(){ /Applications/MPlayerX.app/Contents/MacOS/MPlayerX -framedrop hard "$@"; }
 
 function setup(){
   brew install ffmpeg; # includes ffprobe
@@ -387,10 +387,13 @@ function dogfight2(){
   replacement-video  6322.331  48  $0;
 }
 
+function dogfight3(){
+  replacement-audio  1.48.18.8.ts  1.48.31.8.ts; #13.6s
+  replacement-video  6361.329  307  $0; #12.8s
+}
 
-function dogfight7(){
+function dogfight4(){
   replacement-audio  1.49.08.9.ts  1.49.11.9.ts;
-
   replacement-video  6411.128  97  $0;
 }
 
