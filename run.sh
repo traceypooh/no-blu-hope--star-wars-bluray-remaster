@@ -222,27 +222,6 @@ EOF
 }
 
 
-function stormtroopers-deadend(){
-  # We cant have Han round corner chasing stormtroopers and run into a new CG + BG "digital painting" of an entire
-  # galley of stormtroopers and such, now can we?
-  # In '77 Han runs around corner, only to find the troopers hav hit a deadend and they need to fight their way out...
-
-  # keep the new audio
-  cat 1.27.42.5.ts  1.27.43.5.ts >| new.ts; # 1.9s
-  ffmpeg -y -i new.ts -c copy -vn newA.ts;
-
-  # this gets us 3 keyframes bookending 2 GOPs, for 1977 video
-  ffmpeg -y -ss 5150.53 -i negative1.mkv -shortest -t 1.0 -an -c copy 1977V.ts;
-
-  # merge new audio and 1977 video
-  ffmpeg -y -i newA.ts -i 1977V.ts -c copy merged.ts;
-
-  seam  1.27.41*  merged.ts  1.27.4[4-9]ts;
-
-  mv seam.m2ts  stormtroopers-deadend.m2ts;
-  rm -f new.ts newA.ts 1977V.ts merged.ts;
-}
-
 function no-biggs(){
   # when biggs' scene was removed, luke walks under an xwing [CUT] jumps to him starting up ladder to his own xwing
   # transition was too awkward for the live single take (with biggs scene removed in the middle) so they slid up
@@ -375,6 +354,17 @@ function cantina-outside(){
   # NOTE: capture slightly MORE video than will be replacing to get (exactly) 9 keyframes and 8 GOPs cleanly
   replacement-video  2844.023  200  $0;
 }
+
+function stormtroopers-deadend(){
+  # We cant have Han round corner chasing stormtroopers and run into a new CG + BG "digital painting" of an entire
+  # galley of stormtroopers and such, now can we?
+  # In '77 Han runs around corner, only to find the troopers hav hit a deadend and they need to fight their way out...
+  keep-audio  1.27.42.5.ts  1.27.43.5.ts; # 1.9s
+
+  # this gets us 3 keyframes bookending 2 GOPs, from 1977 video
+  replacement-video  5150.53   47  $0;
+}
+
 
 function replacements(){
 cat >| /tmp/.in <<EOF
