@@ -18,6 +18,10 @@ As is well-known, they added many previously deleted scenes (eg: Biggs and Luke 
 * keep the cleaned audio, again _losslessly_
 * where some more minor edits happened (eg: updated halo/ring around explosions) that dont significantly alter the feel of the film, allow/keep them.
 
-## work in progress -- groundwork laid -- details, details, details!
-_Still working on this as of now..._
-STAY TUNED!
+## work in progress -- STAY TUNED!
+* _all the removed CG is done_
+* _all the replaced scenes are done tested_
+* _just need to assemble them all into single big file and test!_
+* _... then I have to fight my PS3 8-)_
+
+See the [run.sh](run.sh) script for the *details!*
