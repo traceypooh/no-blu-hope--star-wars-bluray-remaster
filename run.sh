@@ -483,18 +483,23 @@ function NOT-USED-patrol-dewbacks-using-bluray-video(){ # had issues
 ###################################################################################################################
 
 function assemble(){
+  mkdir -p $D2/tmp;
+
   php -- "$@" <<\
 "EOF"
-<?define('DEBUG',1);#xxx
+<?define('DEBUG',0);
   # get list of all clips that were 100% tossed out
-  $NIXED  = array_flip(explode("\n", trim(`find nix -type f |cut -f3 -d/ |sort`)));
-  $NIXED[key($NIXED)]=1; # so dont have to use isset() later
+  $NIXED=[];
+  foreach(explode("\n", trim(`find nix -type f`)) as $file){
+    list(, $slug, $file) = explode('/', $file);
+    $NIXED[$file] = "NIXED: $slug";
+  }
 
   # get list of all clips that have been replaced with 1977 video
   $FIXED=[];
   foreach (file('REPLACED.txt',FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES) as $line){
     list($k,$v) = explode(' ', $line);
-    $FIXED[$k] = $v;
+    $FIXED[$k] = "FIXED: $v";
   }
 
   # get current list of clips
@@ -527,14 +532,71 @@ function assemble(){
     print_r(array_slice($CLIPS, 0, 10));
   }
 
-  $state=[];
-  foreach ($CLIPS as $ts => $ignored){
-    if      (@$NIXED[$ts]) $state[$ts] = 'nixed';
-    else if (@$FIXED[$ts]) $state[$ts] = $FIXED[$ts];
-    else                   $state[$ts] = '';
+  # assign a state to every clip (that the movie was initially split into)
+  foreach ($CLIPS as $ts => &$state){
+    if      (@$NIXED[$ts]) $state = $NIXED[$ts];
+    else if (@$FIXED[$ts]) $state = $FIXED[$ts];
+    else                   $state = '';
   }
+  unset($state);
 
-  print_r($state);
+  if (DEBUG) print_r($CLIPS);
 
+  # group adjacent state ranges of clips together
+  $groups = [];
+  $clips = '';
+  $prev = '';
+  foreach ($CLIPS as $ts => $state){
+    if ($state==$prev){
+      $clips .= " $ts";
+    }
+    else {
+      if ($clips)
+        $groups[] = [$clips, $prev];
+      $clips = $ts;
+    }
+    $prev = $state;
+  }
+  if ($clips) # _should_ always be the case..
+    $groups[] = [$clips, $prev];
+
+
+  # "You may _fire_ when ready"
+  #
+  # now concat/copy adjacent "clean" clips to new (sometimes monster big) files
+  # so we can do a final single "concat" with the clean clips and replaced clips
+  # (and blow up this place and all go home)
+  $seams = [];
+  foreach ($groups as $group){
+    list($clips, $state) = $group;
+    $clips = trim($clips);
+    $left = strtok($clips, " ");
+    $rite = strrev(strtok(strrev($clips), " "));
+    echo "[ $left .. $rite ]\t$state\n";
+
+    if (strpos($state, 'NIXED: ')!==FALSE)
+      continue; // throwing out
+
+    if (preg_match('/FIXED: (.*)/', $state, $mat)){
+      $file = "{$mat[1]}.ts";
+      if (end($seams) !== $file) # avoids "eisley" showing up 3x in a row (due to two deleted clips in between!)
+        $seams[] = $file;
+      continue;
+    }
+
+    if ($state!=='')
+      die("bad state $state");
+
+    $file = getenv('D2')."/tmp/$left--$rite";
+    if (!file_exists($file)){
+      $cmd = "cat $clips > $file...  &&  mv $file... $file";
+      echo "$cmd\n";
+      flush();
+      `$cmd`;
+    }
+    $seams[] = $file;
+  }
+  file_put_contents("CONCATS", join("  ", $seams)."\n");
 EOF
+
 }
