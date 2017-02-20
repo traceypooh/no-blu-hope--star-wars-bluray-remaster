@@ -388,14 +388,29 @@ function cantina-outside(){
 
 
 function greedo(){
-  if [ -e nix/greedo-trimmed/0.50.54.7.ts ]; then
-    echo "already done and not rerunnable";
-    return;
+  # clip of controversy -- SPOILER ALERT -- we never see shots in 1977 at all!
+  LEFT=0.50.54.7.ts;
+  RITE=0.50.55.5.ts; # **VERY** weird -- next clip PTS are *before* $TRIM for the most part -- so "seam" it special-ly
+
+  if [ ! -e nix/greedo-trimmed/$LEFT ]; then
+    # only do this step once -- not rerunnable (without manually reversing ;-)
+    mkdir      nix/greedo-trimmed;
+    mv  $LEFT  nix/greedo-trimmed;
   fi
 
-  mkdir             nix/greedo-trimmed;
-  mv  0.50.54.7.ts  nix/greedo-trimmed;
-  ffmpeg -i nix/greedo-trimmed/0.50.54.7.ts -c copy -frames 11 0.50.54.7.ts;
+  # keep just the first 11 frames of this (the original part of the GOP)
+  ffmpeg -y -i  nix/greedo-trimmed/$LEFT -c copy -copyts -vframes 11 $LEFT;
+
+  # we have to VERY carefully re-splice these two (adjacent) clips back together, rebasing timestamps
+  seamTS  $LEFT  $RITE;
+  mv  seam.ts  $0.ts;
+
+  # track them as replaced clips
+  touch                       REPLACED.txt;
+  (echo $LEFT; echo $RITE) >> REPLACED.txt;
+  sort  REPLACED.txt -u    -o REPLACED.txt;
+
+  test-seam $LEFT  $RITE  $0;
 }
 
 
