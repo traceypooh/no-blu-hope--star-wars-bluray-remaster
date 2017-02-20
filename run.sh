@@ -27,6 +27,7 @@ export MD5_MKV="b5519a30445291665df1a1aae8107c9e"; # if you want to verify your 
 # NOTE: this plays as file on PS3 (1080p 5.1 AAC mp4):
 #   ffmpeg -i orig.ts -c:v copy -c:a libfaac -ac 6  1080p-aac-5.1.mp4
 #
+# xxx may need to lead w/ a few bluray frames to avoid thinking dominant FPS is mkv?!
 # xxx for PS3 -- M2TS (AKA AVCHD) may have to downmix to 5.1 AC-3 <= 448kb/s
 # xxx may need CFR and not VFR  (DVD version played  Audio: ac3, 48000 Hz, 5.1(side), fltp, 448 kb/s)
 # xxx may need to always pull PS3 network cable *when watching mp4 or burned bluray* due to audio signature checking
@@ -49,8 +50,12 @@ echo "SCRIPT DIR: $THISDIR";
 ###################################################################################################################
 
 function setup(){
+  # ASSUMPTIONS:
+  #   mac (if not adjust to taste) -- that will include baseline terminal, zsh, php CLI and more..
+  #   brew  (if not, https://brew.sh/ is great!)
   brew install ffmpeg; # includes ffprobe
-  brew install mlt;    # handy for editing, playback, and especially playing one frame at a time back/forth
+
+  # brew install mlt;  # handy for editing, playback, and especially playing one frame at a time back/forth
 }
 
 function extraction(){
@@ -95,23 +100,22 @@ function segment(){
   # This also keeps the filename sortable.
     php -- "$@" <<\
 "EOF"
-  <?
-    require_once(getenv("THISDIR")."/Video.inc");
+<?require_once(getenv("THISDIR")."/Video.inc");
 
-    echo "Renaming files: ";
-    foreach (glob("????.ts") as $fi){
-      $PTS = `printf '%06.1f' $(vpackets $fi 2>/dev/null |egrep -m1 'flags=K_*$'|cut -d'|' -f5|cut -f2 -d=)`;
-      if (!preg_match("/^(\d\d\d\d\.\d)$/", $PTS, $mat))
-        throw new Exception("uho bad $PTS");
-      $TO = preg_replace("/^0/","",str_replace(":",".",Video::hms($mat[1],0,1)));
+  echo "Renaming files: ";
+  foreach (glob("????.ts") as $fi){
+    $PTS = `printf '%06.1f' $(vpackets $fi 2>/dev/null |egrep -m1 'flags=K_*$'|cut -d'|' -f5|cut -f2 -d=)`;
+    if (!preg_match("/^(\d\d\d\d\.\d)$/", $PTS, $mat))
+      throw new Exception("uho bad $PTS");
+    $TO = preg_replace("/^0/","",str_replace(":",".",Video::hms($mat[1],0,1)));
 
-      if (file_exists("$TO.ts"))
-        throw new Exception("UHO LOOKS LIKE NEED ANOTHER FLOAT POINT PRECISION FOR PTS DUE TO TWO GOPS TOO CLOSE?");
+    if (file_exists("$TO.ts"))
+      throw new Exception("UHO LOOKS LIKE NEED ANOTHER FLOAT POINT PRECISION FOR PTS DUE TO TWO GOPS TOO CLOSE?");
 
-      rename($fi, "$TO.ts");
-      echo ".";
-    }
-    echo "\n";
+    rename($fi, "$TO.ts");
+    echo ".";
+  }
+  echo "\n";
 EOF
 }
 
@@ -121,6 +125,7 @@ EOF
 ###################################################################################################################
 
 
+# handy for testing:
 function mp(){ /Applications/MPlayerX.app/Contents/MacOS/MPlayerX -framedrop hard "$@"; }
 
 function line () {perl -e 'print "_"x80; print "\n\n";'; }
@@ -210,24 +215,28 @@ function test-seam(){
 
 function track-replacements(){
   # keeps track of this range of clips that will be omitted from the final film (later)
-  local LEFT=${1:?"Usage: $0 [first clip to track] [last clip to track]"}
-  local RITE=${2:?"Usage: $0 [first clip to track] [last clip to track]"}
+  local LEFT=${1:? "Usage: $0 [first clip to track] [last clip to track] [label]"}
+  local RITE=${2:? "Usage: $0 [first clip to track] [last clip to track] [label]"}
+  local LABEL=${3:?"Usage: $0 [first clip to track] [last clip to track] [label]"}
 
   touch                   REPLACED.txt;
-  clips $LEFT $RITE    >> REPLACED.txt;
+  for TS in $(clips $LEFT $RITE); do
+    echo "$TS $LABEL"  >> REPLACED.txt;
+  done
   sort REPLACED.txt -u -o REPLACED.txt;
 }
 
 function replacement-audio(){
   # copies (just) the bluray audio, for the video portion we will be replacing, to audio.ts
-  export LEFT=${1:?"Usage: $0 [first clip to replace] [last clip to replace]"}
-  export RITE=${2:?"Usage: $0 [first clip to replace] [last clip to replace]"}
+  export LEFT=${1:? "Usage: $0 [first clip to replace] [last clip to replace] [label]"}
+  export RITE=${2:? "Usage: $0 [first clip to replace] [last clip to replace] [label]"}
+  export LABEL=${3:?"Usage: $0 [first clip to replace] [last clip to replace] [label]"}
 
   typeset -a REPLACE; # array variable
   REPLACE=( $( clips $LEFT $RITE ) );
   cat $REPLACE >| blu.ts;
 
-  track-replacements $LEFT $RITE;
+  track-replacements $LEFT $RITE $LABEL;
 
   # copy (just) the audio from the bluray for that time range:
   ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
@@ -259,10 +268,8 @@ function replacement-video(){
 
 
 ###################################################################################################################
-#  LETS MAKE A FILM!
+#  LETS (RE)MAKE A FILM!
 ###################################################################################################################
-
-#xxx REPLACED.txt  +  nix/*/*ts
 
 
 # move away groups of clips that are being wholesale removed
@@ -297,19 +304,19 @@ EOF
 
 function credits(){
   # start of 42s was observed from manually watching $OVID
-  replacement-audio  0.00.01.4.ts  0.01.54.7.ts; #114.1s
+  replacement-audio  0.00.01.4.ts  0.01.54.7.ts  $0; #114.1s
   replacement-video  42.975  2754  $0;
 }
 
 function patrol-dewbacks(){
-  replacement-audio  0.15.25.2.ts  0.15.44.8.ts; #20.5s
+  replacement-audio  0.15.25.2.ts  0.15.44.8.ts  $0; #20.5s
   replacement-video  951.758  507  $0;
 }
 
 function kenobi-hut(){
   # NOTE: we need to go 1 bluray GOP backwards (than 0.32.34.6.ts) since the 1977 GOP spread is bigger
   # NOTE: go 1 bluray GOP extra (than 0.32.38.4.ts) to get A/V to seam better
-  replacement-audio  0.32.33.6.ts  0.32.39.1.ts;
+  replacement-audio  0.32.33.6.ts  0.32.39.1.ts  $0;
   replacement-video  1973.779  140  $0; # get slightly more vid, (exactly) 7 keyframes and 6 GOP cleanly
 }
 
@@ -322,9 +329,9 @@ function eisley(){
   # Copy the bluray audio (which now has two extra CG shots in the middle removed) for this time range
   # We will break the audio into the three contiguous pieces (92.8s)
   # so we can re-seam them together with collapsed sequential PTS
-  replacement-audio  0.42.49.1.ts  0.42.54.1.ts;   mv  audio.ts  a.ts;  LEFTSAVE=$LEFT; #(save for replacement-video)
-  replacement-audio  0.43.20.5.ts  0.43.59.5.ts;   mv  audio.ts  b.ts;
-  replacement-audio  0.44.05.3.ts  0.44.52.3.ts;   mv  audio.ts  c.ts;
+  replacement-audio  0.42.49.1.ts  0.42.54.1.ts  $0;   mv  audio.ts  a.ts;  LEFTSAVE=$LEFT; #(save for replacement-video)
+  replacement-audio  0.43.20.5.ts  0.43.59.5.ts  $0;   mv  audio.ts  b.ts;
+  replacement-audio  0.44.05.3.ts  0.44.52.3.ts  $0;   mv  audio.ts  c.ts;
 
   seamTS  a.ts b.ts c.ts;
   mv  seam.ts  audio.ts;
@@ -338,21 +345,21 @@ function eisley(){
 function cantina-bagpiper(){
   # 1977 had a red-eyed "werewolf" growl directly at camera.
   # bluray repalced with a "bagpiper"-esque hookah pipe smoking CG character.
-  replacement-audio  0.45.02.0.ts  0.45.04.8.ts;
+  replacement-audio  0.45.02.0.ts  0.45.04.8.ts  $0;
   replacement-video  2690.495  93  $0; # get slightly more vid, (exactly) 5 keyframes and 4 GOPs cleanly
 }
 
 function cantina-snaggletooth(){
   # NOTE: we'll capture slightly LESS video than we will be replacing to get (exactly) 4 keyframes and 3 GOPs cleanly
   #       because o/w we have a rough seam/transition (and ~0.5s audio being removed ends up OK -- choices!)
-  replacement-audio  0.46.15.3.ts  0.46.18.2.ts;
+  replacement-audio  0.46.15.3.ts  0.46.18.2.ts  $0;
   replacement-video  2764.027  70  $0;
 }
 
 function cantina-outside(){
   # CG lizards with disembarking troopers added when threepio says "I dont like the look of this" outside
-  replacement-audio  0.47.35.2.ts  0.47.41.9.ts;
-  replacement-video  2844.023  185202  $0; # get slightly more vid, (exactly) 9 keyframes and 8 GOPs cleanly
+  replacement-audio  0.47.35.2.ts  0.47.41.9.ts  $0;
+  replacement-video  2844.023  185  $0; # get slightly more vid, (exactly) 9 keyframes and 8 GOPs cleanly
 }
 
 
@@ -361,20 +368,19 @@ function greedo(){
   LEFT=0.50.54.7.ts;
   RITE=0.50.55.5.ts; # **VERY** weird -- next clip PTS are *before* $TRIM for the most part -- so "seam" it special-ly
 
-  if [ ! -e nix/greedo-trimmed/$LEFT ]; then
+  if [ ! -e $LEFT.ORIG ]; then
     # only do this step once -- not rerunnable (without manually reversing ;-)
-    mkdir      nix/greedo-trimmed;
-    mv  $LEFT  nix/greedo-trimmed;
+    cp  $LEFT  $LEFT.ORIG;
   fi
 
   # keep just the first 11 frames of this (the original part of the GOP)
-  ffmpeg -y -i  nix/greedo-trimmed/$LEFT -c copy -copyts -vframes 11 $LEFT;
+  ffmpeg -y -i  $LEFT.ORIG -c copy -copyts -vframes 11 $LEFT;
 
   # we have to VERY carefully re-splice these two (adjacent) clips back together, rebasing timestamps
   seamTS  $LEFT  $RITE;
   mv  seam.ts  $0.ts;
 
-  track-replacements  $LEFT  $RITE;
+  track-replacements  $LEFT  $RITE  $0;
 
   test-seam $LEFT  $RITE  $0;
 }
@@ -384,12 +390,12 @@ function stormtroopers-deadend(){
   # We cant have Han round corner chasing stormtroopers and run into a new CG + BG "digital painting" of an entire
   # galley of stormtroopers and such, now can we?
   # In '77 Han runs around corner, only to find the troopers hav hit a deadend and they need to fight their way out...
-  replacement-audio  1.27.42.5.ts  1.27.43.5.ts; # 1.9s
+  replacement-audio  1.27.42.5.ts  1.27.43.5.ts  $0; # 1.9s
   replacement-video  5150.53   47  $0; # this gets us 3 keyframes bookending 2 GOPs, from 1977 video
 }
 
 function falcon-arrives-yavin(){
-  replacement-audio  1.38.08.2.ts  1.38.37.4.ts; #29.7s
+  replacement-audio  1.38.08.2.ts  1.38.37.4.ts  $0; #29.7s
   replacement-video  5776.453  715  $0;
 }
 
@@ -411,48 +417,47 @@ function no-biggs(){
   mv  seam.ts  $0.ts;
   test-seam  $LEFT  $RITE  $0;
 
-  track-replacements $LEFT $RITE;
+  track-replacements $LEFT $RITE  $0;
 
   rm hangar.ts;
 }
 
 function xwings-leaving-yavin(){
-  replacement-audio  1.45.04.1.ts  1.45.08.8.ts; #5.2s
+  replacement-audio  1.45.04.1.ts  1.45.08.8.ts  $0; #5.2s
   replacement-video  6166.342  139  $0;
 }
 
 function xwings-rounding-yavin(){
-  replacement-audio  1.45.22.1.ts  1.45.32.1.ts; #10.7s
+  replacement-audio  1.45.22.1.ts  1.45.32.1.ts  $0; #10.7s
   replacement-video  6185.027  236  $0; # get 12 keyframes / 11 GOPs
 }
 
 function dogfight0(){
-  replacement-audio  1.46.21.6.ts  1.46.23.2.ts; # 2s
+  replacement-audio  1.46.21.6.ts  1.46.23.2.ts  $0; # 2s
   replacement-video  6244.504  52  $0;
 }
 
 function dogfight1(){ # xxx there is a slight tower firing repeat here..
-  replacement-audio  1.46.31.5.ts  1.46.32.3.ts; # 1.5s
+  replacement-audio  1.46.31.5.ts  1.46.32.3.ts  $0; # 1.5s
   replacement-video  6253.346  47  $0;
 }
 
 function dogfight2(){
-  replacement-audio  1.47.40.0.ts  1.47.41.1.ts; #1.9s
+  replacement-audio  1.47.40.0.ts  1.47.41.1.ts  $0; #1.9s
   replacement-video  6322.331  48  $0;
 }
 
 function dogfight3(){
-  replacement-audio  1.48.18.8.ts  1.48.31.8.ts; #13.6s
+  replacement-audio  1.48.18.8.ts  1.48.31.8.ts  $0; #13.6s
   replacement-video  6361.329  307  $0; #12.8s
 }
 
 function dogfight4(){
-  replacement-audio  1.49.08.9.ts  1.49.11.9.ts;
-  replacement-video  6411.128  97  $0;
+  replacement-audio  1.49.08.9.ts  1.49.11.9.ts  $0;
+  replacement-video  6411.128  94  $0;
 }
 
-
-function NOT-USED-patrol-dewbacks-orig(){ # had issues
+function NOT-USED-patrol-dewbacks-using-bluray-video(){ # had issues
 
   LEFT=0.15.00.7.ts;
   RITE=0.15.39.6.ts;
@@ -470,4 +475,66 @@ function NOT-USED-patrol-dewbacks-orig(){ # had issues
   test-seam $LEFT  $RITE  $0; # ... but still had problems here!
 
   rm a.ts b.ts a2.ts b2.ts concat.txt;
+}
+
+
+###################################################################################################################
+#  "WALK IN A SINGLE FILE" -- ASSEMBLE THE PIECES BACK TO 1 FILE!
+###################################################################################################################
+
+function assemble(){
+  php -- "$@" <<\
+"EOF"
+<?define('DEBUG',1);#xxx
+  # get list of all clips that were 100% tossed out
+  $NIXED  = array_flip(explode("\n", trim(`find nix -type f |cut -f3 -d/ |sort`)));
+  $NIXED[key($NIXED)]=1; # so dont have to use isset() later
+
+  # get list of all clips that have been replaced with 1977 video
+  $FIXED=[];
+  foreach (file('REPLACED.txt',FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES) as $line){
+    list($k,$v) = explode(' ', $line);
+    $FIXED[$k] = $v;
+  }
+
+  # get current list of clips
+  $FILES = array_flip(glob("?.??.??.?.ts"));
+  $FILES[key($FILES)]=1; # so dont have to use isset() later
+
+  # complete unified list
+  $CLIPS = array_merge($NIXED, $FIXED, $FILES);
+
+  ksort($NIXED);
+  ksort($FIXED);
+  ksort($FILES);
+  ksort($CLIPS);
+
+  # do some basic checking
+  $tmp = array_intersect_key($NIXED, $FILES);
+  if (count($tmp)){ print_r($tmp); die('uho -- some clips in "nix" subdir are in main dir'); }
+  $tmp = array_intersect_key($FILES, $NIXED);
+  if (count($tmp)){ print_r($tmp); die('uho -- some clips in "nix" subdir are in main dir'); }
+  $tmp = array_intersect_key($FIXED, $FILES);
+  if (count($tmp) != count($FIXED)){ print_r($tmp); die('uho -- some replaced clips are missing from main dir'); }
+  $tmp = array_intersect_key($FILES, $FIXED);
+  if (count($tmp) != count($FIXED)){ print_r($tmp); die('uho -- some replaced clips are missing from main dir'); }
+
+  if (DEBUG){
+    # sample info
+    print_r(array_slice($NIXED, 0, 10));
+    print_r(array_slice($FIXED, 0, 10));
+    print_r(array_slice($FILES, 0, 10));
+    print_r(array_slice($CLIPS, 0, 10));
+  }
+
+  $state=[];
+  foreach ($CLIPS as $ts => $ignored){
+    if      (@$NIXED[$ts]) $state[$ts] = 'nixed';
+    else if (@$FIXED[$ts]) $state[$ts] = $FIXED[$ts];
+    else                   $state[$ts] = '';
+  }
+
+  print_r($state);
+
+EOF
 }
