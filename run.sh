@@ -145,6 +145,7 @@ function pts(){
 
 
 function clips(){
+  set +x;
   local LEFT=${1:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
   local RITE=${2:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
 
@@ -178,6 +179,11 @@ function options77(){
 
   echo SEC=$SEC;
   echo HMS=$HMS;
+
+  if [ ! -e negative1.packets ]; then
+    echo "(ONETIME) GENERATING PACKETS INFO FOR $OVID -- this will take awhile..."
+    vpackets "$OVID" > negative1.packets;
+  fi
 
   PTS=$(egrep 'K_*$' negative1.packets |fgrep -m1 pts_time=$SEC |cut -f5 -d'|' |cut -f2 -d=);
 
@@ -249,12 +255,15 @@ function replacement-video(){
   SEEK=${1:?   "Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
   FRAMES=${2:? "Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
   OUTNAME=${3:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
+  ENDKEY=${4:-"yes"};
 
   # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
   ffmpeg -y -ss $SEEK -i $OVID  -frames $FRAMES  -an -c:v copy  video.ts;
 
-  vpackets video.ts |tail -1 |egrep '=K_*$';
-  if [ "$?" != "0" ]; then echo; echo "FATAL video.ts didnt end in keyframe"; return; fi
+  if [ "$ENDKEY" = "yes" ]; then
+    vpackets video.ts |tail -1 |egrep '=K_*$';
+    if [ "$?" != "0" ]; then echo; echo "FATAL video.ts didnt end in keyframe"; return; fi
+  fi
 
   # merge A/V
   # NOTE: use -shortest to drop longer audio/video
@@ -277,7 +286,6 @@ function replacement-video(){
 function cuts(){
   # inclusive ranges
 cat >| /tmp/.in <<EOF
-  0.11.20.6   0.11.24.9   # fade to sky to r2 in canyon
   0.15.10.3   0.15.24.2   # patrol dewbacks1
   0.15.45.8   0.15.51.3   # patrol dewbacks2
   0.42.55.0   0.43.15.4   # entering mos eisley
@@ -307,6 +315,11 @@ function credits(){
   # start of 42s was observed from manually watching $OVID
   replacement-audio  0.00.01.4.ts  0.01.54.7.ts  $0; #114.1s
   replacement-video  42.975  2754  $0;
+}
+
+function r2-entering-canyon(){
+  replacement-audio  0.11.20.6.ts  0.11.26.6.ts  $0;  #6.7s
+  replacement-video  723.321  110  $0  end-non-keyframe; # go SHORTER (4.8s) to end replacement earlier
 }
 
 function patrol-dewbacks(){
