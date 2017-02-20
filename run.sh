@@ -197,8 +197,10 @@ function seamTS(){ #xxx convert _everywhere_ to this?
   mkdir -p seam;
   touch seam/concat.txt;
   for i in "$@"; do
-    ln -s ../$i seam/$i;
-    echo "file '$i'" >> seam/concat.txt;
+    if [ -s $i ]; then
+      ln -s ../$i seam/$i;
+      echo "file '$i'" >> seam/concat.txt;
+    fi
   done
   cat seam/concat.txt;
   ffmpeg -y -f concat -i seam/concat.txt -codec copy -f mpegts -fflags +genpts -async 1 seam.ts;
@@ -240,9 +242,7 @@ function test-seam(){
   # (cat nothing as final arg, in case there are no clips that match (eg: credits has nothing prior, etc.))
   cat $(clips $LEFT -10 |fgrep -v $LEFT) /dev/null >| pre.ts;
   cat $(clips $RITE  10 |fgrep -v $RITE) /dev/null >| post.ts;
-  find . -name  pre.ts -empty -delete;
-  find . -name post.ts -empty -delete;
-  seamTS $(/bin/ls pre.ts $OUTNAME.ts post.ts 2>/dev/null);
+  seamTS  pre.ts  $OUTNAME.ts  post.ts;
   mv seam.ts $OUTNAME-seamed.ts;
 }
 
@@ -353,17 +353,17 @@ function eisley(){
   # Copy the bluray audio (which now has two extra CG shots in the middle removed) for this time range
   # We will break the audio into the three contiguous pieces (92.8s)
   # so we can re-seam them together with collapsed sequential PTS
-  LEFT=0.42.49.1.ts; # (set for replacement-video below)
-  RITE=0.44.52.3.ts; # (set for replacement-video below)
-  cat $(clips $LEFT        0.42.54.1.ts) |ffmpeg -y -f mpegts -i - -vn -c:a copy a.ts;
-  cat $(clips 0.43.20.5.ts 0.43.59.5.ts) |ffmpeg -y -f mpegts -i - -vn -c:a copy b.ts;
-  cat $(clips 0.44.05.3.ts        $RITE) |ffmpeg -y -f mpegts -i - -vn -c:a copy c.ts;
-  seam a.ts b.ts c.ts;
-  ffmpeg -y -i seam.m2ts -c copy audio.ts;
+  replacement-audio  0.42.49.1.ts  0.42.54.1.ts;   mv  audio.ts  a.ts;  LEFTSAVE=$LEFT; #(save for replacement-video)
+  replacement-audio  0.43.20.5.ts  0.43.59.5.ts;   mv  audio.ts  b.ts;
+  replacement-audio  0.44.05.3.ts  0.44.52.3.ts;   mv  audio.ts  c.ts;
 
+  seamTS  a.ts b.ts c.ts;
+  mv  seam.ts  audio.ts;
+
+  export LEFT=$LEFTSAVE; # this allows seam preview to be made with correct preceding clips
   replacement-video  2587.725  2258  $0;
 
-  rm a.ts b.ts c.ts seam.m2ts;
+  rm a.ts b.ts c.ts;
 }
 
 function cantina-bagpiper(){
