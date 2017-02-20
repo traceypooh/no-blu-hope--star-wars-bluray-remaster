@@ -21,11 +21,21 @@ export OVID="$D1/tmp/negative1.mkv"; # siver screen negative1 Jan 11,2016 first 
 #
 ###################################################################################################################
 
+# NOTE: this plays as file on PS3 (1080p 5.1 AAC mp4):
+#   ffmpeg -i orig.m2ts -c:v copy -c:a libfaac -ac 6  1080p-aac-5.1.mp4
+#
 # xxx for PS3 -- M2TS (AKA AVCHD) may have to downmix to 5.1 AC-3 <= 448kb/s
-# PS3: 1080p 5.1 AAC mp4 works -- ffmpeg -i orig.m2ts -c:v copy -c:a libfaac -ac 6  1080p-aac-5.1.mp4
 # xxx may need CFR and not VFR  (DVD version played  Audio: ac3, 48000 Hz, 5.1(side), fltp, 448 kb/s)
 # xxx may need to always pull PS3 network cable *when watching mp4 or burned bluray* due to audio signature checking
 # appleTV _should_ be able to do Dolby Digital 5.1 (AKA AC-3)...  _maybe_ at 24fps ?!
+# xxx try small edited sample and PS3 verify as mp4...
+# xxx once done
+#   identify all groups of sequential untouched segments and "cat" them into
+#   final # groups (for maximal A/V seaming), then "rebase" each group PTS to 0
+#   then ffmpeg concat them.  that should mean _at most_ that many pops/seam oddities...
+# xxx to avoid "bloops" when doing REMOVE and REPLACE operations, try keeping REMOVED keyframe and merge into the _prior_ GOP since B-frames, eg:
+#  ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
+
 
 export THISDIR=$(dirname "$0");
 echo "SCRIPT DIR: $THISDIR";
@@ -167,15 +177,6 @@ function options77(){
 }
 
 
-
-# xxx try small edited sample and PS3 verify as mp4...
-# xxx once done
-#   identify all groups of sequential untouched segments and "cat" them into
-#   final # groups (for maximal A/V seaming), then "rebase" each group PTS to 0
-#   then ffmpeg concat them.  that should mean _at most_ that many pops/seam oddities...
-
-# xxx to avoid "bloops" when doing REMOVE and REPLACE operations, try keeping REMOVED keyframe and merge into the _prior_ GOP since B-frames, eg:
-#  ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
 function seam(){
   rm -rf   seam/;
   mkdir -p seam;
@@ -275,7 +276,7 @@ function replacement-video(){
   test-seam $LEFT $RITE $OUTNAME;
 
   # cleanup
-  #rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/; #xxx
+  rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/;
 }
 
 
