@@ -1,14 +1,28 @@
-# no-blu-hope--star-wars-bluray-remaster
-lossless reedit of Star Wars bluray disc to 1977 version of film
+==================================================================================================================
+
+                                          No Blu Hope
+                                AKA "No New Hope" Bluray Edition
+                            AKA "No New Hope" 2K carat gold edition
+
+ This is the 1080p lossless recut from "official version" bluray back to 1977 version.
+ 
+ This is the bluray version of "No New Hope" https://archive.org/details/reremaster (created from DVDs in 2010)
+
+==================================================================================================================
+
+# No Blu Hope
 
 ## Background
 The bluray release of the first film was part of a $10M restoration project of the updated 1977 version of the film.
+
 The Lucas teams used multiple "cans" (reels) of film from various sources, un-spliced the negatives and split into various film stock groups, to irreversibly, chemically restore the cells as best they could.
 The results are *spectacular*.
+
 In addition, they split out the 2-channel stereo to 6.1 DTS lossless audio, also done extremely well.
 
 ## Philosophy for this Project / Repository
 _.. then what's my (and most everyone's) problem?_
+
 As is well-known, they added many previously deleted scenes (eg: Biggs and Luke talking before flying off against Death Star) and enhanced some (eg: Jabba the Hutt goes from large human actor to CG "lizard") and more.  Much of the effects are very distracting and anachronistic to the stark beauty of the "small environments" and beautiful practical effects used in 1977.
 
 ## Guidelines:
