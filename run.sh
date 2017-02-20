@@ -180,19 +180,8 @@ function options77(){
 }
 
 
-function seam(){
-  rm -rf   seam/;
-  mkdir -p seam;
-  touch seam/concat.txt;
-  for i in "$@"; do
-    ln -s ../$i seam/$i;
-    echo "file '$i'" >> seam/concat.txt;
-  done
-  cat seam/concat.txt;
-  ffmpeg -y -f concat -i seam/concat.txt -codec copy -f mpegts -fflags +genpts -async 1 seam.m2ts;
-}
-
-function seamTS(){ #xxx convert _everywhere_ to this?
+function seamTS(){
+  # takes a list of clips and rebases each clip's timestamps with a lossless "concat" operation
   rm -rf   seam/;
   mkdir -p seam;
   touch seam/concat.txt;
@@ -204,33 +193,6 @@ function seamTS(){ #xxx convert _everywhere_ to this?
   done
   cat seam/concat.txt;
   ffmpeg -y -f concat -i seam/concat.txt -codec copy -f mpegts -fflags +genpts -async 1 seam.ts;
-}
-
-# handy debugging function
-function seam-across-cuts(){
-  if [ ! -d nix ]; then echo "FATAL: WRONG SUBDIR?"; return; fi;
-
-  # array variables
-  typeset -a A;
-  typeset -a B;
-
-  for i in nix/[a-z]*; do
-    FIRST=$(/bin/ls $i/?.??.??.?.ts |head -1 |cut -f3 -d/);
-     LAST=$(/bin/ls $i/?.??.??.?.ts |tail -1 |cut -f3 -d/);
-    echo "SEAMING: [$i] [$FIRST .. $LAST]";
-    A=($(php -r 'echo join("\n", array_slice(array_filter(glob("?.??.??.?.ts"), function($e){ return $e<="'$FIRST'"; }),-10,10));'));
-    B=($(php -r 'echo join("\n", array_slice(array_filter(glob("?.??.??.?.ts"), function($e){ return $e>="'$LAST'" ; }),0,10));'));
-    set -x;
-    cat $A >| a.ts;
-    cat $B >| b.ts;
-    set +x;
-    seam a.ts b.ts;
-    mplayer -framedrop seam.m2ts >/dev/null 2>&1;
-    open seam.m2ts;
-    line;
-    echo -n "Continue? [RETURN or CTL-C] ";
-    read cont;
-  done
 }
 
 function test-seam(){
@@ -246,19 +208,26 @@ function test-seam(){
   mv seam.ts $OUTNAME-seamed.ts;
 }
 
+function track-replacements(){
+  # keeps track of this range of clips that will be omitted from the final film (later)
+  local LEFT=${1:?"Usage: $0 [first clip to track] [last clip to track]"}
+  local RITE=${2:?"Usage: $0 [first clip to track] [last clip to track]"}
+
+  touch                   REPLACED.txt;
+  clips $LEFT $RITE    >> REPLACED.txt;
+  sort REPLACED.txt -u -o REPLACED.txt;
+}
+
 function replacement-audio(){
   # copies (just) the bluray audio, for the video portion we will be replacing, to audio.ts
-  export LEFT=${1:?"Usage: $0 [first clip to replace] [last clip to replace] <optional ffmpeg args>"}
-  export RITE=${2:?"Usage: $0 [first clip to replace] [last clip to replace] <optional ffmpeg args>"}
+  export LEFT=${1:?"Usage: $0 [first clip to replace] [last clip to replace]"}
+  export RITE=${2:?"Usage: $0 [first clip to replace] [last clip to replace]"}
 
   typeset -a REPLACE; # array variable
   REPLACE=( $( clips $LEFT $RITE ) );
   cat $REPLACE >| blu.ts;
 
-  # keep track of these segments that will be omitted from the final film (later)
-  touch                         REPLACED.txt;
-  echo $REPLACE |tr ' ' '\n' >> REPLACED.txt;
-  sort  REPLACED.txt -u      -o REPLACED.txt;
+  track-replacements $LEFT $RITE;
 
   # copy (just) the audio from the bluray for that time range:
   ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
@@ -405,10 +374,7 @@ function greedo(){
   seamTS  $LEFT  $RITE;
   mv  seam.ts  $0.ts;
 
-  # track them as replaced clips
-  touch                       REPLACED.txt;
-  (echo $LEFT; echo $RITE) >> REPLACED.txt;
-  sort  REPLACED.txt -u    -o REPLACED.txt;
+  track-replacements  $LEFT  $RITE;
 
   test-seam $LEFT  $RITE  $0;
 }
@@ -432,16 +398,22 @@ function no-biggs(){
   # transition was too awkward for the live single take (with biggs scene removed in the middle) so they slid up
   # a (short) wide-angle hangar shot to separate the split scene.
 
-  cat  1.43.09.2.ts  1.43.10.3.ts  1.43.10.8.ts  >| a.ts; # luke walking from leia
+  LEFT=1.43.11.3.ts;
 
-  echo 1.43.14.3.ts # luke touching xwing underside.  1977 film moved this out of sequence, from 2 GOPs ahead, to allow smoother biggs deletion
+  # luke touching xwing underside.
+  # 1977 film moved this out of sequence, from 2 GOPs ahead, to allow smoother biggs deletion
+  RITE=1.43.14.3.ts;
 
-  cat  1.43.11.3.ts  1.43.12.4.ts  1.43.13.4.ts  >| b.ts; # hangar. biggs removed from here to next
+  cat $(clips  $LEFT  $RITE |fgrep -v $RITE) >| hangar.ts; # hangar. biggs clips removed after this range in "cuts()"
 
-  echo 1.43.45.2.ts # luke climbs up xwing ladder
+  # move the right most clip first, followed by first/other 3 clips
+  seamTS  $RITE  hangar.ts;
+  mv  seam.ts  $0.ts;
+  test-seam  $LEFT  $RITE  $0;
 
-  seam  a.ts  1.43.14.3.ts  b.ts  1.43.45.2.ts;
-  mv seam.m2ts no-biggs.m2ts;
+  track-replacements $LEFT $RITE;
+
+  rm hangar.ts;
 }
 
 function xwings-leaving-yavin(){
@@ -490,7 +462,6 @@ function NOT-USED-patrol-dewbacks-orig(){ # had issues
   ffmpeg -y -i a.ts  -g 1 -q:v 0 -c:a copy -g 1 a2.ts;
   ffmpeg -y -i b.ts  -g 1 -q:v 0 -c:a copy -g 1 b2.ts;
 
-  seam  a2.ts  b2.ts
   ( echo file 'a2.ts'; echo file 'b2.ts' ) >| concat.txt;
 
   # this is the most tool-friendly (mplayer, melt, QuickTime) version
