@@ -40,6 +40,7 @@ export MD5_MKV="b5519a30445291665df1a1aae8107c9e"; # if you want to verify your 
 # xxx to avoid "bloops" when doing REMOVE and REPLACE operations, try keeping REMOVED keyframe and merge into the _prior_ GOP since B-frames, eg:
 #  ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
 
+# xxx replace floating droid "it's locked. move on."
 
 export THISDIR=$(dirname "$0");
 echo "SCRIPT DIR: $THISDIR";
@@ -579,6 +580,10 @@ function assemble(){
 
     if (preg_match('/FIXED: (.*)/', $state, $mat)){
       $file = "{$mat[1]}.ts";
+      # concat only allows local-qualified filenames so copy the ready-to-go replacement video over there
+      $cmd = "rsync -Pav $file " . getenv('D2')."/tmp/$file";
+      echo "$cmd\n";
+      passthru($cmd);
       if (end($seams) !== $file) # avoids "eisley" showing up 3x in a row (due to two deleted clips in between!)
         $seams[] = $file;
       continue;
@@ -594,9 +599,14 @@ function assemble(){
       flush();
       `$cmd`;
     }
-    $seams[] = $file;
+    $seams[] = basename($file);
   }
-  file_put_contents("CONCATS", join("  ", $seams)."\n");
+  file_put_contents("CONCATS.txt", "file '" . join("'\nfile '", $seams)."'\n");
 EOF
 
+  # NOW CONCAT EVERYTHING TOGETHER!
+  cd $D2/tmp/;
+  cp $D1/tmp/CONCATS.txt .;
+  ffmpeg -y -f concat -i CONCATS.txt -codec copy -f mpegts -fflags +genpts -async 1 $D1/tmp/FILM.ts;
+  cd -;
 }
