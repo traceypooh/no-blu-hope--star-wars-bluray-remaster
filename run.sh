@@ -13,16 +13,19 @@
 ###################################################################################################################
 #
 # Assumes you have an .iso burned from your bluray, located here:
-export ISO=Star.Wars.Episode.4.A.New.Hope.1977.BluRay.1080p.AVC.DTS-HD.MA6.1-CHDBits.iso;
+export ISO=Star.Wars.Episode.4.A.New.Hope.1977.BluRay.1080p.AVC.DTS-HD.MA6.1-CHDBits.iso; #33GB
 # config D1 and D2 to scratch drives -- 2 is ideal (for i/o speed) but can be same
 export D1=/Volumes/bff-bup;
 export D2=/Volumes/bff;
-export OVID="$D1/tmp/negative1.mkv"; # siver screen negative1 Jan 11,2016 first release
+export OVID="$D1/tmp/negative1.mkv"; # silver screen negative1 Jan 11,2016 first release (22GB)
 #
+export MD5_ISO="bdd5495e48f6726ff25f72421f9976f2"; # if you want to verify your files for 100% compatibility below
+export MD5_MKV="b5519a30445291665df1a1aae8107c9e"; # if you want to verify your files for 100% compatibility below
+
 ###################################################################################################################
 
 # NOTE: this plays as file on PS3 (1080p 5.1 AAC mp4):
-#   ffmpeg -i orig.m2ts -c:v copy -c:a libfaac -ac 6  1080p-aac-5.1.mp4
+#   ffmpeg -i orig.ts -c:v copy -c:a libfaac -ac 6  1080p-aac-5.1.mp4
 #
 # xxx for PS3 -- M2TS (AKA AVCHD) may have to downmix to 5.1 AC-3 <= 448kb/s
 # xxx may need CFR and not VFR  (DVD version played  Audio: ac3, 48000 Hz, 5.1(side), fltp, 448 kb/s)
@@ -252,8 +255,13 @@ function replacement-audio(){
   REPLACE=( $( clips $LEFT $RITE ) );
   cat $REPLACE >| blu.ts;
 
+  # keep track of these segments that will be omitted from the final film (later)
+  touch                         REPLACED.txt;
+  echo $REPLACE |tr ' ' '\n' >> REPLACED.txt;
+  sort  REPLACED.txt -u      -o REPLACED.txt;
+
   # copy (just) the audio from the bluray for that time range:
-  ffmpeg -y -i blu.ts -vn -c:a copy  $3 $4 $5 $6 $7 $8 $9  audio.ts;
+  ffmpeg -y -i blu.ts -vn -c:a copy  audio.ts;
 }
 
 function replacement-video(){
@@ -284,6 +292,8 @@ function replacement-video(){
 ###################################################################################################################
 #  LETS MAKE A FILM!
 ###################################################################################################################
+
+#xxx REPLACED.txt  +  nix/*/*ts
 
 
 # move away groups of clips that are being wholesale removed
@@ -323,7 +333,7 @@ function credits(){
 }
 
 function patrol-dewbacks(){
-  replacement-audio   0.15.25.2.ts   0.15.44.8.ts; #20.5s
+  replacement-audio  0.15.25.2.ts  0.15.44.8.ts; #20.5s
   replacement-video  951.758  507  $0;
 }
 
@@ -331,9 +341,7 @@ function kenobi-hut(){
   # NOTE: we need to go 1 bluray GOP backwards (than 0.32.34.6.ts) since the 1977 GOP spread is bigger
   # NOTE: go 1 bluray GOP extra (than 0.32.38.4.ts) to get A/V to seam better
   replacement-audio  0.32.33.6.ts  0.32.39.1.ts;
-
-  # NOTE: we'll capture slightly MORE video than we want/will use to get (exactly) 7 keyframes and 6 GOP cleanly
-  replacement-video  1973.779  140  $0;
+  replacement-video  1973.779  140  $0; # get slightly more vid, (exactly) 7 keyframes and 6 GOP cleanly
 }
 
 function eisley(){
@@ -362,25 +370,20 @@ function cantina-bagpiper(){
   # 1977 had a red-eyed "werewolf" growl directly at camera.
   # bluray repalced with a "bagpiper"-esque hookah pipe smoking CG character.
   replacement-audio  0.45.02.0.ts  0.45.04.8.ts;
-
-  # NOTE: we'll capture slightly MORE video than we want/will use to get (exactly) 5 keyframes and 4 GOPs cleanly
-  replacement-video  2690.495  93  $0;
+  replacement-video  2690.495  93  $0; # get slightly more vid, (exactly) 5 keyframes and 4 GOPs cleanly
 }
 
 function cantina-snaggletooth(){
-  replacement-audio  0.46.15.3.ts  0.46.18.2.ts;
-
   # NOTE: we'll capture slightly LESS video than we will be replacing to get (exactly) 4 keyframes and 3 GOPs cleanly
   #       because o/w we have a rough seam/transition (and ~0.5s audio being removed ends up OK -- choices!)
+  replacement-audio  0.46.15.3.ts  0.46.18.2.ts;
   replacement-video  2764.027  70  $0;
 }
 
 function cantina-outside(){
   # CG lizards with disembarking troopers added when threepio says "I dont like the look of this" outside
   replacement-audio  0.47.35.2.ts  0.47.41.9.ts;
-
-  # NOTE: capture slightly MORE video than will be replacing to get (exactly) 9 keyframes and 8 GOPs cleanly
-  replacement-video  2844.023  185202  $0;
+  replacement-video  2844.023  185202  $0; # get slightly more vid, (exactly) 9 keyframes and 8 GOPs cleanly
 }
 
 
@@ -401,9 +404,7 @@ function stormtroopers-deadend(){
   # galley of stormtroopers and such, now can we?
   # In '77 Han runs around corner, only to find the troopers hav hit a deadend and they need to fight their way out...
   replacement-audio  1.27.42.5.ts  1.27.43.5.ts; # 1.9s
-
-  # this gets us 3 keyframes bookending 2 GOPs, from 1977 video
-  replacement-video  5150.53   47  $0;
+  replacement-video  5150.53   47  $0; # this gets us 3 keyframes bookending 2 GOPs, from 1977 video
 }
 
 function falcon-arrives-yavin(){
@@ -430,15 +431,12 @@ function no-biggs(){
 
 function xwings-leaving-yavin(){
   replacement-audio  1.45.04.1.ts  1.45.08.8.ts; #5.2s
-
   replacement-video  6166.342  139  $0;
 }
 
 function xwings-rounding-yavin(){
   replacement-audio  1.45.22.1.ts  1.45.32.1.ts; #10.7s
-
-  # get 12 keyframes / 11 GOPs
-  replacement-video  6185.027  236  $0;
+  replacement-video  6185.027  236  $0; # get 12 keyframes / 11 GOPs
 }
 
 function dogfight0(){
