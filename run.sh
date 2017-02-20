@@ -13,7 +13,7 @@
 ###################################################################################################################
 #
 # Assumes you have an .iso burned from your bluray, located here:
-export ISO=Star.Wars.Episode.4.A.New.Hope.1977.BluRay.1080p.AVC.DTS-HD.MA6.1-CHDBits.iso; #33GB
+export ISO=star-wars-bluray.iso; #33GB
 # config D1 and D2 to scratch drives -- 2 is ideal (for i/o speed) but can be same
 export D1=/Volumes/bff-bup;
 export D2=/Volumes/bff;
@@ -291,7 +291,7 @@ cat >| /tmp/.in <<EOF
   0.42.55.0   0.43.15.4   # entering mos eisley
   0.44.00.3   0.44.04.9   # entering mos eisley2
   0.43.16.4   0.43.20.0   # entering mos eisley3 audio excess
-  0.52.41.7   0.54.13.8   # jabba
+  0.52.41.7   0.54.13.3   # jabba
   0.55.37.5   0.55.40.3   # falcon takeoff mos eisley
   1.43.15.3   1.43.44.2   # biggs
 EOF
@@ -397,6 +397,34 @@ function greedo(){
   track-replacements  $LEFT  $RITE  $0;
 
   test-seam $LEFT  $RITE  $0;
+}
+
+
+function jabba(){
+  # OK _this_ is where I need to do some VERY MINOR lossy editing..
+  # The GOPs are being _very_ stubborn around the range I want to remove -- so with my current techniques
+  # I need to use the GOPs just inside the range I want to remove.
+  # That means there's an awkward double transition:
+  #    black circle closing in around black "spy vs. spy" guy
+  #    slidding door wipe right-to-left from jabba scene to ben/luke in eisley corridor
+  #    (and by the way, 1977 was a single dissolve transition -- they "scribbled over" the bluray adding those!)
+  # Could live with that (given the Lossless Guiding Principles of the project)
+  # but the _biggest_ problem is your eye can clearly catch Boba Fett very quickly in the second transition, ugh!
+  # (though he looks badass / awesome, _no doubt_, sorry he wasn't even created/around in 1977 at all...)
+  # Solution?  "scribble on the film" (sigh, like they did) and draw fully 10 black frames over Boba Fett, which
+  # also makes the awkward "two transitions" less visible/obvious, too.
+  LEFT=0.52.41.1.ts; # tip of jabba CG tail is _just barely_ visible in last 3 frames here (but at 24fps cant see)
+  RITE=0.54.13.8.ts; # boba fett is _clearly visible_ for 8 frames here -- we need to disappear!
+
+  seamTS $LEFT $RITE;
+
+  # PNG made via: convert -size 1920x1080  xc:black black.png;
+  ffmpeg -y -i seam.ts -i $THISDIR/black.png -copyts -q:v 0 -filter_complex "[0:v][1:v]overlay=enable='between(n,8,19)'[out]" -map "[out]" -map 0:a:0 -c:a:0 copy  $0.ts;
+  rm  seam.ts;
+
+  track-replacements  $LEFT  $RITE  $0;
+
+  test-seam  $LEFT  $RITE  $0;
 }
 
 
