@@ -32,6 +32,9 @@ As is well-known, they added many previously deleted scenes (eg: Biggs and Luke 
 * keep the cleaned audio, again _losslessly_
 * where some more minor edits happened (eg: updated halo/ring around explosions) that dont significantly alter the feel of the film, allow/keep them.
 
+![edit timeline](edit.png "edit timeline")
+
+
 ## work in progress -- STAY TUNED!
 * _all the removed CG is done_
 * _all the replaced scenes are done tested_
