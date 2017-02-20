@@ -38,4 +38,4 @@ As is well-known, they added many previously deleted scenes (eg: Biggs and Luke 
 * _just need to assemble them all into single big file and test!_
 * _... then I have to fight my PS3 8-)_
 
-**See the [run.sh](run.sh) script for the details!**
+## See the [run.sh](run.sh) script for the details!
