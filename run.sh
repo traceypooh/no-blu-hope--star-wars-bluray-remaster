@@ -30,8 +30,10 @@ export OVID="$D1/tmp/negative1.mkv"; # siver screen negative1 Jan 11,2016 first 
 export THISDIR=$(dirname "$0");
 echo "SCRIPT DIR: $THISDIR";
 
-function mp(){ /Applications/MPlayerX.app/Contents/MacOS/MPlayerX -framedrop hard "$@"; }
-function line () {perl -e 'print "_"x80; print "\n\n";'; }
+
+###################################################################################################################
+#  SETUP
+###################################################################################################################
 
 function setup(){
   brew install ffmpeg; # includes ffprobe
@@ -55,51 +57,6 @@ function extraction(){
   rm concat.txt;
   chmod ugo-wx $D1/starwars-1080p.m2ts;
 }
-
-# xxx try small edited sample and PS3 verify as mp4...
-# xxx once done
-#   identify all groups of sequential untouched segments and "cat" them into
-#   final # groups (for maximal A/V seaming), then "rebase" each group PTS to 0
-#   then ffmpeg concat them.  that should mean _at most_ that many pops/seam oddities...
-
-# xxx to avoid "bloops" when doing REMOVE and REPLACE operations, try keeping REMOVED keyframe and merge into the _prior_ GOP since B-frames, eg:
-#  ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
-function seam(){
-  rm -rf   seam/;
-  mkdir -p seam;
-  touch seam/concat.txt;
-  for i in "$@"; do
-    ln -s ../$i seam/$i;
-    echo "file '$i'" >> seam/concat.txt;
-  done
-  cat seam/concat.txt;
-  ffmpeg -y -f concat -i seam/concat.txt -codec copy -f mpegts -fflags +genpts -async 1 seam.m2ts;
-}
-
-function seamTS(){ #xxx convert _everywhere_ to this?
-  rm -rf   seam/;
-  mkdir -p seam;
-  touch seam/concat.txt;
-  for i in "$@"; do
-    ln -s ../$i seam/$i;
-    echo "file '$i'" >> seam/concat.txt;
-  done
-  cat seam/concat.txt;
-  ffmpeg -y -f concat -i seam/concat.txt -codec copy -f mpegts -fflags +genpts -async 1 seam.ts;
-}
-
-function pts(){
-  line; ffmpeg -i "$1" 2>&1 |egrep 'Duration:|start:';
-  line; vpackets "$1" 2>/dev/null|head -2|cut -f5 -d'|';
-  line; apackets "$1" 2>/dev/null|head -2|cut -f5 -d'|';
-}
-
-
-function packets(){
-  ffprobe -v 0 -hide_banner -select_streams $PTYPE -show_packets -print_format compact "$@";
-}
-function vpackets(){ PTYPE=v; packets "$@"; }
-function apackets(){ PTYPE=a; packets "$@"; }
 
 
 # (losslessly) split the official bluray film version into files -- one per GOP
@@ -146,6 +103,103 @@ EOF
 }
 
 
+###################################################################################################################
+#  UTILITY METHODS
+###################################################################################################################
+
+
+function mp(){ /Applications/MPlayerX.app/Contents/MacOS/MPlayerX -framedrop hard "$@"; }
+
+function line () {perl -e 'print "_"x80; print "\n\n";'; }
+
+function packets(){
+  ffprobe -v 0 -hide_banner -select_streams $PTYPE -show_packets -print_format compact "$@";
+}
+function vpackets(){ PTYPE=v; packets "$@"; }
+function apackets(){ PTYPE=a; packets "$@"; }
+
+function pts(){
+  line; ffmpeg -i "$1" 2>&1 |egrep 'Duration:|start:';
+  line; vpackets "$1" 2>/dev/null|head -2|cut -f5 -d'|';
+  line; apackets "$1" 2>/dev/null|head -2|cut -f5 -d'|';
+}
+
+
+function clips(){
+  local LEFT=${1:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
+  local RITE=${2:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
+
+  LEFT=$(echo "$LEFT" |perl -pe 's/\.ts$//');
+  RITE=$(echo "$RITE" |perl -pe 's/\.ts$//');
+
+  if [[ $RITE =~ \\. ]]; then
+    # return the filenames in the wanted time range
+    /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts |fgrep -B10000 $RITE.ts;
+  elif [[ $RITE =~ \\- ]]; then
+    # eg "-10" which means return (up to) 10 clips -- the 9 clips before $LEFT and $LEFT
+    /bin/ls ?.??.??.?.ts |fgrep -B100000 $LEFT.ts |tail $RITE;
+  else
+    # eg "10" which means return (up to) 10 clips -- $LEFT and the 9 clips after $LEFT
+    /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts |head -$RITE;
+  fi
+}
+
+# manually used to more easily determine good keyframes and range of GOPs from 1977 version to use for replacement
+function options77(){
+  HMS_OR_SEC=${1:?"Usage: $0 [HH:MM:SS or H:MM:SS or seconds] <optional number frames to check, default 1000>"}
+  NFRAMES=${2:-"1000"};
+
+  if [[ $HMS_OR_SEC =~ : ]]; then
+    HMS=$HMS_OR_SEC;
+    SEC=$(echo $HMS |php -R 'require_once(getenv("THISDIR")."/Video.inc"); echo Video::hms2sec($argn);');
+  else
+    SEC=$HMS_OR_SEC;
+    HMS=$(echo $SEC |php -R 'require_once(getenv("THISDIR")."/Video.inc"); echo Video::hms($argn);');
+  fi
+
+  echo SEC=$SEC;
+  echo HMS=$HMS;
+
+  PTS=$(egrep 'K_*$' negative1.packets |fgrep -m1 pts_time=$SEC |cut -f5 -d'|' |cut -f2 -d=);
+
+  # now show a bunch of options of durations and frame counts for keyframe-to-keyframe clipping
+  fgrep -A$NFRAMES pts_time=$PTS negative1.packets |egrep -n 'K_*$' |cut -f1,5 -d'|' |tr : = |cut -f1,3 -d= |tr = ' '|phpR 'list($f,$sec)=explode(" ",$argn); if (!$start) $start=$sec; echo "frames=$f\tduration=".round($sec-$start,4)."\tstart=$sec\n";';
+}
+
+
+
+# xxx try small edited sample and PS3 verify as mp4...
+# xxx once done
+#   identify all groups of sequential untouched segments and "cat" them into
+#   final # groups (for maximal A/V seaming), then "rebase" each group PTS to 0
+#   then ffmpeg concat them.  that should mean _at most_ that many pops/seam oddities...
+
+# xxx to avoid "bloops" when doing REMOVE and REPLACE operations, try keeping REMOVED keyframe and merge into the _prior_ GOP since B-frames, eg:
+#  ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
+function seam(){
+  rm -rf   seam/;
+  mkdir -p seam;
+  touch seam/concat.txt;
+  for i in "$@"; do
+    ln -s ../$i seam/$i;
+    echo "file '$i'" >> seam/concat.txt;
+  done
+  cat seam/concat.txt;
+  ffmpeg -y -f concat -i seam/concat.txt -codec copy -f mpegts -fflags +genpts -async 1 seam.m2ts;
+}
+
+function seamTS(){ #xxx convert _everywhere_ to this?
+  rm -rf   seam/;
+  mkdir -p seam;
+  touch seam/concat.txt;
+  for i in "$@"; do
+    ln -s ../$i seam/$i;
+    echo "file '$i'" >> seam/concat.txt;
+  done
+  cat seam/concat.txt;
+  ffmpeg -y -f concat -i seam/concat.txt -codec copy -f mpegts -fflags +genpts -async 1 seam.ts;
+}
+
 # handy debugging function
 function seam-across-cuts(){
   if [ ! -d nix ]; then echo "FATAL: WRONG SUBDIR?"; return; fi;
@@ -171,84 +225,6 @@ function seam-across-cuts(){
     echo -n "Continue? [RETURN or CTL-C] ";
     read cont;
   done
-}
-
-
-function clips(){
-  local LEFT=${1:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
-  local RITE=${2:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
-
-  LEFT=$(echo "$LEFT" |perl -pe 's/\.ts$//');
-  RITE=$(echo "$RITE" |perl -pe 's/\.ts$//');
-
-  if [[ $RITE =~ \\. ]]; then
-    # return the filenames in the wanted time range
-    /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts |fgrep -B10000 $RITE.ts;
-  elif [[ $RITE =~ \\- ]]; then
-    # eg "-10" which means return (up to) 10 clips -- the 9 clips before $LEFT and $LEFT
-    /bin/ls ?.??.??.?.ts |fgrep -B100000 $LEFT.ts |tail $RITE;
-  else
-    # eg "10" which means return (up to) 10 clips -- $LEFT and the 9 clips after $LEFT
-    /bin/ls ?.??.??.?.ts |fgrep -A100000 $LEFT.ts |head -$RITE;
-  fi
-}
-
-
-function cuts(){
-  # inclusive ranges
-cat >| /tmp/.in <<EOF
-  0.11.20.6   0.11.24.9 # fade to sky to r2 in canyon
-  0.15.10.3   0.15.24.2 # patrol dewbacks1
-  0.15.45.8   0.15.51.3 # patrol dewbacks2
-  0.42.55.0   0.43.15.4 # entering mos eisley
-  0.44.00.3   0.44.04.9 # entering mos eisley2
-  0.43.16.4   0.43.20.0 # entering mos eisley3 audio excess
-  0.52.41.7   0.54.13.8 # jabba
-  0.55.37.5   0.55.40.3 # falcon takeoff mos eisley
-  1.43.15.3   1.43.44.2 # biggs
-EOF
-  if [ ! -f out.m3u8 ]; then echo "FATAL: WRONG SUBDIR?"; return; fi;
-  mkdir -p nix;
-  for i in $(cat /tmp/.in | tr ' ' '_'); do
-    FROM=$(echo "$i" |tr -s '_' ' ' |cut -f2  -d' ');
-      TO=$(echo "$i" |tr -s '_' ' ' |cut -f3  -d' ');
-    SLUG=$(echo "$i" |tr -s '_' ' ' |cut -f4- -d' ' |tr -d '#' |tr ' ' - |perl -pe 's/^\-*//');
-
-    set -x;
-    mkdir -p nix/$SLUG;
-    mv $(clips  $FROM.ts  $TO.ts) nix/$SLUG/
-    set +x;
-  done;
-  rm /tmp/.in;
-}
-
-
-function no-biggs(){
-  # when biggs' scene was removed, luke walks under an xwing [CUT] jumps to him starting up ladder to his own xwing
-  # transition was too awkward for the live single take (with biggs scene removed in the middle) so they slid up
-  # a (short) wide-angle hangar shot to separate the split scene.
-
-  cat  1.43.09.2.ts  1.43.10.3.ts  1.43.10.8.ts  >| a.ts; # luke walking from leia
-
-  echo 1.43.14.3.ts # luke touching xwing underside.  1977 film moved this out of sequence, from 2 GOPs ahead, to allow smoother biggs deletion
-
-  cat  1.43.11.3.ts  1.43.12.4.ts  1.43.13.4.ts  >| b.ts; # hangar. biggs removed from here to next
-
-  echo 1.43.45.2.ts # luke climbs up xwing ladder
-
-  seam  a.ts  1.43.14.3.ts  b.ts  1.43.45.2.ts;
-  mv seam.m2ts no-biggs.m2ts;
-}
-
-function greedo(){
-  if [ -e nix/greedo-trimmed/0.50.54.7.ts ]; then
-    echo "already done and not rerunnable";
-    return;
-  fi
-
-  mkdir             nix/greedo-trimmed;
-  mv  0.50.54.7.ts  nix/greedo-trimmed;
-  ffmpeg -i nix/greedo-trimmed/0.50.54.7.ts -c copy -frames 11 0.50.54.7.ts;
 }
 
 function test-seam(){
@@ -303,16 +279,60 @@ function replacement-video(){
 }
 
 
+
+###################################################################################################################
+#  LETS MAKE A FILM!
+###################################################################################################################
+
+
+# move away groups of clips that are being wholesale removed
+function cuts(){
+  # inclusive ranges
+cat >| /tmp/.in <<EOF
+  0.11.20.6   0.11.24.9   # fade to sky to r2 in canyon
+  0.15.10.3   0.15.24.2   # patrol dewbacks1
+  0.15.45.8   0.15.51.3   # patrol dewbacks2
+  0.42.55.0   0.43.15.4   # entering mos eisley
+  0.44.00.3   0.44.04.9   # entering mos eisley2
+  0.43.16.4   0.43.20.0   # entering mos eisley3 audio excess
+  0.52.41.7   0.54.13.8   # jabba
+  0.55.37.5   0.55.40.3   # falcon takeoff mos eisley
+  1.43.15.3   1.43.44.2   # biggs
+EOF
+  if [ ! -f out.m3u8 ]; then echo "FATAL: WRONG SUBDIR?"; return; fi;
+  mkdir -p nix;
+  for i in $(cat /tmp/.in | tr ' ' '_'); do
+    FROM=$(echo "$i" |tr -s '_' ' ' |cut -f2  -d' ');
+      TO=$(echo "$i" |tr -s '_' ' ' |cut -f3  -d' ');
+    SLUG=$(echo "$i" |tr -s '_' ' ' |cut -f4- -d' ' |tr -d '#' |tr ' ' - |perl -pe 's/^\-*//');
+
+    set -x;
+    mkdir -p nix/$SLUG;
+    mv $(clips  $FROM.ts  $TO.ts) nix/$SLUG/
+    set +x;
+  done;
+  rm /tmp/.in;
+}
+
+
 function credits(){
   # start of 42s was observed from manually watching $OVID
   replacement-audio  0.00.01.4.ts  0.01.54.7.ts; #114.1s
   replacement-video  42.975  2754  $0;
 }
 
-
 function patrol-dewbacks(){
   replacement-audio   0.15.25.2.ts   0.15.44.8.ts; #20.5s
   replacement-video  951.758  507  $0;
+}
+
+function kenobi-hut(){
+  # NOTE: we need to go 1 bluray GOP backwards (than 0.32.34.6.ts) since the 1977 GOP spread is bigger
+  # NOTE: go 1 bluray GOP extra (than 0.32.38.4.ts) to get A/V to seam better
+  replacement-audio  0.32.33.6.ts  0.32.39.1.ts;
+
+  # NOTE: we'll capture slightly MORE video than we want/will use to get (exactly) 7 keyframes and 6 GOP cleanly
+  replacement-video  1973.779  140  $0;
 }
 
 function eisley(){
@@ -335,15 +355,6 @@ function eisley(){
   replacement-video  2587.725  2258  $0;
 
   rm a.ts b.ts c.ts seam.m2ts;
-}
-
-function kenobi-hut(){
-  # NOTE: we need to go 1 bluray GOP backwards (than 0.32.34.6.ts) since the 1977 GOP spread is bigger
-  # NOTE: go 1 bluray GOP extra (than 0.32.38.4.ts) to get A/V to seam better
-  replacement-audio  0.32.33.6.ts  0.32.39.1.ts;
-
-  # NOTE: we'll capture slightly MORE video than we want/will use to get (exactly) 7 keyframes and 6 GOP cleanly
-  replacement-video  1973.779  140  $0;
 }
 
 function cantina-bagpiper(){
@@ -371,6 +382,19 @@ function cantina-outside(){
   replacement-video  2844.023  185202  $0;
 }
 
+
+function greedo(){
+  if [ -e nix/greedo-trimmed/0.50.54.7.ts ]; then
+    echo "already done and not rerunnable";
+    return;
+  fi
+
+  mkdir             nix/greedo-trimmed;
+  mv  0.50.54.7.ts  nix/greedo-trimmed;
+  ffmpeg -i nix/greedo-trimmed/0.50.54.7.ts -c copy -frames 11 0.50.54.7.ts;
+}
+
+
 function stormtroopers-deadend(){
   # We cant have Han round corner chasing stormtroopers and run into a new CG + BG "digital painting" of an entire
   # galley of stormtroopers and such, now can we?
@@ -384,6 +408,23 @@ function stormtroopers-deadend(){
 function falcon-arrives-yavin(){
   replacement-audio  1.38.08.2.ts  1.38.37.4.ts; #29.7s
   replacement-video  5776.453  715  $0;
+}
+
+function no-biggs(){
+  # when biggs' scene was removed, luke walks under an xwing [CUT] jumps to him starting up ladder to his own xwing
+  # transition was too awkward for the live single take (with biggs scene removed in the middle) so they slid up
+  # a (short) wide-angle hangar shot to separate the split scene.
+
+  cat  1.43.09.2.ts  1.43.10.3.ts  1.43.10.8.ts  >| a.ts; # luke walking from leia
+
+  echo 1.43.14.3.ts # luke touching xwing underside.  1977 film moved this out of sequence, from 2 GOPs ahead, to allow smoother biggs deletion
+
+  cat  1.43.11.3.ts  1.43.12.4.ts  1.43.13.4.ts  >| b.ts; # hangar. biggs removed from here to next
+
+  echo 1.43.45.2.ts # luke climbs up xwing ladder
+
+  seam  a.ts  1.43.14.3.ts  b.ts  1.43.45.2.ts;
+  mv seam.m2ts no-biggs.m2ts;
 }
 
 function xwings-leaving-yavin(){
@@ -423,29 +464,6 @@ function dogfight4(){
   replacement-audio  1.49.08.9.ts  1.49.11.9.ts;
   replacement-video  6411.128  97  $0;
 }
-
-
-function options77(){
-  HMS_OR_SEC=${1:?"Usage: $0 [HH:MM:SS or H:MM:SS or seconds] <optional number frames to check, default 1000>"}
-  NFRAMES=${2:-"1000"};
-
-  if [[ $HMS_OR_SEC =~ : ]]; then
-    HMS=$HMS_OR_SEC;
-    SEC=$(echo $HMS |php -R 'require_once(getenv("THISDIR")."/Video.inc"); echo Video::hms2sec($argn);');
-  else
-    SEC=$HMS_OR_SEC;
-    HMS=$(echo $SEC |php -R 'require_once(getenv("THISDIR")."/Video.inc"); echo Video::hms($argn);');
-  fi
-
-  echo SEC=$SEC;
-  echo HMS=$HMS;
-
-  PTS=$(egrep 'K_*$' negative1.packets |fgrep -m1 pts_time=$SEC |cut -f5 -d'|' |cut -f2 -d=);
-
-  # now show a bunch of options of durations and frame counts for keyframe-to-keyframe clipping
-  fgrep -A$NFRAMES pts_time=$PTS negative1.packets |egrep -n 'K_*$' |cut -f1,5 -d'|' |tr : = |cut -f1,3 -d= |tr = ' '|phpR 'list($f,$sec)=explode(" ",$argn); if (!$start) $start=$sec; echo "frames=$f\tduration=".round($sec-$start,4)."\tstart=$sec\n";';
-}
-
 
 
 function NOT-USED-patrol-dewbacks-orig(){ # had issues
