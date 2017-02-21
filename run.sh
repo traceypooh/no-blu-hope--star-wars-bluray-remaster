@@ -40,8 +40,6 @@ export MD5_MKV="b5519a30445291665df1a1aae8107c9e"; # if you want to verify your 
 # xxx to avoid "bloops" when doing REMOVE and REPLACE operations, try keeping REMOVED keyframe and merge into the _prior_ GOP since B-frames, eg:
 #  ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
 
-# xxx replace floating droid "it's locked. move on."
-
 export THISDIR=$(dirname "$0");
 echo "SCRIPT DIR: $THISDIR";
 
@@ -400,6 +398,14 @@ function greedo(){
 
   test-seam $LEFT  $RITE  $0;
 }
+
+
+function search-eisley(){
+  # there's an added annoying CG flying droid "helping" the troopers search.  we shall swat it.
+  replacement-audio  0.51.47.7.ts  0.51.57.7.ts  $0; #10.9s
+  replacement-video  3096.025  255  $0; # cut video slightly shorter
+}
+
 
 
 function jabba(){
