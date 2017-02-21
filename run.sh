@@ -127,12 +127,14 @@ EOF
 
 
 # handy for testing:
-function mp(){ /Applications/MPlayerX.app/Contents/MacOS/MPlayerX -framedrop hard "$@"; }
+function mp(){ /Applications/MPlayerX.app/Contents/MacOS/MPlayerX -framedrop hard "$@" 2>&1 |fgrep -v 'Fallingback to pbuffer. FBO status is' | perl -ne '$|=1; next unless m/\S/; print' |uniq; }
 
 function line () {perl -e 'print "_"x80; print "\n\n";'; }
 
 function packets(){
   ffprobe -v 0 -hide_banner -select_streams $PTYPE -show_packets -print_format compact "$@";
+  # other specific-entries options:
+  # ffprobe -hide_banner  -select_streams v -show_frames -print_format compact  -show_entries 'frame=pkt_pts_time,pkt_pts,pkt_dts_time,pkt_dts,pict_type,key_frame'
 }
 function vpackets(){ PTYPE=v; packets "$@"; }
 function apackets(){ PTYPE=a; packets "$@"; }
@@ -208,9 +210,9 @@ function seamTS(){
 }
 
 function test-seam(){
-  LEFT=${1:?   "Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
-  RITE=${2:?   "Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
-  OUTNAME=${3:?"Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
+  local LEFT=${1:?   "Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
+  local RITE=${2:?   "Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
+  local OUTNAME=${3:?"Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
 
   # now test it fully seamed in, with 10 clips (~9s) before and after
   # (cat nothing as final arg, in case there are no clips that match (eg: credits has nothing prior, etc.))
@@ -401,30 +403,53 @@ function greedo(){
 
 
 function jabba(){
-  # OK _this_ is where I need to do some VERY MINOR lossy editing..
-  # The GOPs are being _very_ stubborn around the range I want to remove -- so with my current techniques
-  # I need to use the GOPs just inside the range I want to remove.
-  # That means there's an awkward double transition:
-  #    black circle closing in around black "spy vs. spy" guy
+  # "These are the bounty hunters you are looking for"
+  #
+  # The GOPs are being _very_ stubborn around the range I want to remove.  Hello "open GOP" bluray (facepalm)
+  # http://www.chaneru.com/Roku/HLS/X264_Settings.htm#open-gop
+  # So with my current techniques, I need to retain 1 full GOP I dont want, and (just) the keyframe of another GOP
+  # we _really_ dont want...
+  # That means there's going to be a slightly awkward pair of (partial) scene transitions:
+  #    black circle closing in around black "spy vs. spy" guy (turns in to slimey worm...)
   #    slidding door wipe right-to-left from jabba scene to ben/luke in eisley corridor
   #    (and by the way, 1977 was a single dissolve transition -- they "scribbled over" the bluray adding those!)
   # Could live with that (given the Lossless Guiding Principles of the project)
-  # but the _biggest_ problem is your eye can clearly catch Boba Fett very quickly in the second transition, ugh!
+  # but the _biggest_ problem is your eye can clearly catch Boba Fett in that second GOP after 2nd transition, ugh!
   # (though he looks badass / awesome, _no doubt_, sorry he wasn't even created/around in 1977 at all...)
-  # Solution?  "scribble on the film" (sigh, like they did) and draw fully 10 black frames over Boba Fett, which
-  # also makes the awkward "two transitions" less visible/obvious, too.
+  # So we'll chop the "FETT" GOP down to just 1 keyframe..
+  # Here's our 3 act play and GOPs:
+  LEFT=0.52.41.1.ts; # jabba tail _just_ barely visible in last 2 frames -- acceptable
+  FETT=0.54.13.8.ts; # fett _clearly_ visible, dead center of screen, first 1/3 GOP -- unacceptable
+  RITE=0.54.14.9.ts; # no fett visible
+
+  # Well this stinks, but copy (just) the keyframe from the FETT GOP
+  # since the LEFT and RITE clips get _very_ unhappy without it.
+  # And, while they're not 100% _happy_  and perfect _with_ it
+  # (it's _not_ the correct GOP for LEFT to be borrowing open-gop B-frame info from!)
+  # the 1-frame of boba is nearly imperceptible _and_ the movie export won't sputter and cough blood/errors up...
+  #
+  # "You can go about your business.  Move along."
+  ffmpeg -y -i  $FETT  -c copy -vframes 1  1.ts;
+
+  seamTS  $LEFT  1.ts  $RITE;
+  mv  seam.ts  $0.ts
+
+  test-seam   $LEFT  $RITE  $0;
+
+  track-replacements  $LEFT  $RITE  $0;
+
+  return;  # remaining not done but left as was 2nd best solution
+
+
+  # Alternate solution?  "scribble on the film" (sigh, like they did) and draw fully 10 black frames over Boba Fett,
+  # which also makes the awkward "two transitions" less visible/obvious, too.
+  # (However, abandoned this after preceding and following GOPS to _these_ GOPS weren't 100% happy w/ the GOP change!
   LEFT=0.52.41.1.ts; # tip of jabba CG tail is _just barely_ visible in last 3 frames here (but at 24fps cant see)
   RITE=0.54.13.8.ts; # boba fett is _clearly visible_ for 8 frames here -- we need to disappear!
 
   seamTS $LEFT $RITE;
-
-  # PNG made via: convert -size 1920x1080  xc:black black.png;
+  convert -size 1920x1080  xc:black black.png;
   ffmpeg -y -i seam.ts -i $THISDIR/black.png -copyts -q:v 0 -filter_complex "[0:v][1:v]overlay=enable='between(n,8,19)'[out]" -map "[out]" -map 0:a:0 -c:a:0 copy  $0.ts;
-  rm  seam.ts;
-
-  track-replacements  $LEFT  $RITE  $0;
-
-  test-seam  $LEFT  $RITE  $0;
 }
 
 
