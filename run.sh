@@ -24,21 +24,16 @@ export MD5_MKV="b5519a30445291665df1a1aae8107c9e"; # if you want to verify your 
 
 ###################################################################################################################
 
-# NOTE: this plays as file on PS3 (1080p 5.1 AAC mp4):
-#   ffmpeg -i orig.ts -c:v copy -c:a libfaac -ac 6  1080p-aac-5.1.mp4
+# NOTE: PS3 plays this sample as file (1080p 5.1 AAC mp4) -- you can use similar to downmix 6.1 DTS to 5.1 AAC
+#   ffmpeg -i FILM.ts -c:v copy -c:a libfaac -ac 6 -t 180  1080p-aac-5.1.mp4
 #
 # xxx may need to lead w/ a few bluray frames to avoid thinking dominant FPS is mkv?!
-# xxx for PS3 -- M2TS (AKA AVCHD) may have to downmix to 5.1 AC-3 <= 448kb/s
-# xxx may need CFR and not VFR  (DVD version played  Audio: ac3, 48000 Hz, 5.1(side), fltp, 448 kb/s)
-# xxx may need to always pull PS3 network cable *when watching mp4 or burned bluray* due to audio signature checking
-# appleTV _should_ be able to do Dolby Digital 5.1 (AKA AC-3)...  _maybe_ at 24fps ?!
-# xxx try small edited sample and PS3 verify as mp4...
-# xxx once done
-#   identify all groups of sequential untouched segments and "cat" them into
-#   final # groups (for maximal A/V seaming), then "rebase" each group PTS to 0
-#   then ffmpeg concat them.  that should mean _at most_ that many pops/seam oddities...
-# xxx to avoid "bloops" when doing REMOVE and REPLACE operations, try keeping REMOVED keyframe and merge into the _prior_ GOP since B-frames, eg:
-#  ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
+# xxx PS3: may need to always pull network cable *when watching mp4 or burned bluray* due to audio signature checking
+#
+# PS3: try small edited sample and verify as 5.1 AAC mp4.
+# PS3: if use/try M2TS (AKA AVCHD) may have to downmix to 5.1 AC-3 <= 448kb/s
+# PS3: may need CFR and not VFR  (DVD version played  Audio: ac3, 48000 Hz, 5.1(side), fltp, 448 kb/s)
+# appleTV _should_ be able to do Dolby Digital 5.1 (AKA AC-3)...  but prolly _NOT_ at 24fps 8-(
 
 export THISDIR=$(dirname "$0");  echo "SCRIPT DIR: $THISDIR";
 
@@ -289,10 +284,14 @@ function replacement-audio(){
 function replacement-video(){
   # Copies (just)  the 1977 video for a portion we are replacing.
   # Uses $LEFT and $RITE, merging with "audio.ts", from prior "replacement-audio" step to OUTNAME.ts
+
   SEEK=${1:?   "Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
   FRAMES=${2:? "Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
   OUTNAME=${3:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
   ENDKEY=${4:-"yes"};
+  # To avoid "bloops" when doing REMOVE and REPLACE operations, could try keeping the REMOVED keyframe and merge into
+  # the _prior_ GOP due to B-frames, etc.  eg:
+  #   ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
 
   # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
   ffmpeg -y -ss $SEEK -i $OVID  -frames $FRAMES  -an -c:v copy  video.ts;
