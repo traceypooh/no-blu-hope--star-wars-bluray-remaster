@@ -295,7 +295,7 @@ cat >| /tmp/.in <<EOF
   0.43.16.4   0.43.20.0   # entering mos eisley3 audio excess
   0.52.41.7   0.54.13.3   # jabba
   0.55.37.5   0.55.40.3   # falcon takeoff mos eisley
-  1.43.15.3   1.43.44.2   # biggs
+  1.43.15.3   1.43.45.2   # biggs
 EOF
   if [ ! -f out.m3u8 ]; then echo "FATAL: WRONG SUBDIR?"; return; fi;
   mkdir -p nix;
@@ -467,15 +467,23 @@ function falcon-arrives-yavin(){
 }
 
 function no-biggs(){
-  # when biggs' scene was removed, luke walks under an xwing [CUT] jumps to him starting up ladder to his own xwing
+  # When biggs' scene was removed, luke walks under an xwing [CUT] jumps to him starting up ladder to his own xwing
   # transition was too awkward for the live single take (with biggs scene removed in the middle) so they slid up
   # a (short) wide-angle hangar shot to separate the split scene.
+  # Easier to explain with "pictures" of GOPs, represented as timeline here in named [GOP] boxes.
+  # There are 31 previously deleted Biggs GOPs, we'll call them: NIX1 NIX2 .. NIX31.
+  # So our film is like this:
+  #  .. [LEFT] [HANGAR2] [HANGAR3] [RITE] [NIX1] [NIX2] .. [NIX31] ..
+  # And what we are going to edit down to is:
+  #  .. [RITE] [LEFT] [HANGAR2] [HANGAR3] ..
 
+  # logical "HANGAR1"
   LEFT=1.43.11.3.ts;
 
   # luke touching xwing underside.
   # 1977 film moved this out of sequence, from 2 GOPs ahead, to allow smoother biggs deletion
   RITE=1.43.14.3.ts;
+  # we dont need to name between LEFT and RITE -- but they are logical HANGAR2 and HANGAR3
 
   cat $(clips  $LEFT  $RITE |fgrep -v $RITE) >| hangar.ts; # hangar. biggs clips removed after this range in "cuts()"
 
