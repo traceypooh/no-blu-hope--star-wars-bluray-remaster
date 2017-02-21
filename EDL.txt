@@ -1,0 +1,57 @@
+###############################################################################################
+# Edit Decision List -- when all is said and done, this is what we've done from run.sh script:
+###############################################################################################
+[ 0.00.01.4.ts .. 0.01.54.7.ts ]	FIXED: credits
+[ 0.01.55.7.ts .. 0.11.19.6.ts ]	
+[ 0.11.20.6.ts .. 0.11.27.2.ts ]	FIXED: r2-entering-canyon
+[ 0.11.28.3.ts .. 0.15.09.3.ts ]	
+[ 0.15.10.3.ts .. 0.15.24.2.ts ]	NIXED: patrol-dewbacks1
+[ 0.15.25.2.ts .. 0.15.44.8.ts ]	FIXED: patrol-dewbacks
+[ 0.15.45.8.ts .. 0.15.51.3.ts ]	NIXED: patrol-dewbacks2
+[ 0.15.51.9.ts .. 0.32.32.6.ts ]	
+[ 0.32.33.6.ts .. 0.32.39.1.ts ]	FIXED: kenobi-hut
+[ 0.32.40.2.ts .. 0.42.48.1.ts ]	
+[ 0.42.49.1.ts .. 0.42.54.1.ts ]	FIXED: eisley
+[ 0.42.55.0.ts .. 0.43.15.4.ts ]	NIXED: entering-mos-eisley
+[ 0.43.16.4.ts .. 0.43.20.0.ts ]	NIXED: entering-mos-eisley3-audio-excess
+[ 0.43.20.5.ts .. 0.43.59.5.ts ]	FIXED: eisley
+[ 0.44.00.3.ts .. 0.44.04.9.ts ]	NIXED: entering-mos-eisley2
+[ 0.44.05.3.ts .. 0.44.52.3.ts ]	FIXED: eisley
+[ 0.44.53.2.ts .. 0.45.01.0.ts ]	
+[ 0.45.02.0.ts .. 0.45.04.8.ts ]	FIXED: cantina-bagpiper
+[ 0.45.05.4.ts .. 0.46.14.8.ts ]	
+[ 0.46.15.3.ts .. 0.46.18.2.ts ]	FIXED: cantina-snaggletooth
+[ 0.46.18.9.ts .. 0.47.34.2.ts ]	
+[ 0.47.35.2.ts .. 0.47.41.9.ts ]	FIXED: cantina-outside
+[ 0.47.42.5.ts .. 0.50.53.7.ts ]	
+[ 0.50.54.7.ts .. 0.50.55.5.ts ]	FIXED: greedo
+[ 0.50.56.2.ts .. 0.51.47.2.ts ]	
+[ 0.51.47.7.ts .. 0.51.57.7.ts ]	FIXED: search-eisley
+[ 0.51.58.8.ts .. 0.52.40.1.ts ]	
+[ 0.52.41.1.ts .. 0.52.41.1.ts ]	FIXED: jabba
+[ 0.52.41.7.ts .. 0.54.13.3.ts ]	NIXED: jabba
+[ 0.54.13.8.ts .. 0.54.14.9.ts ]	FIXED: jabba
+[ 0.54.15.9.ts .. 0.55.36.7.ts ]	
+[ 0.55.37.5.ts .. 0.55.40.3.ts ]	NIXED: falcon-takeoff-mos-eisley
+[ 0.55.41.0.ts .. 1.27.41.9.ts ]	
+[ 1.27.42.5.ts .. 1.27.43.5.ts ]	FIXED: stormtroopers-deadend
+[ 1.27.44.4.ts .. 1.38.07.6.ts ]	
+[ 1.38.08.2.ts .. 1.38.37.4.ts ]	FIXED: falcon-arrives-yavin
+[ 1.38.38.0.ts .. 1.43.10.8.ts ]	
+[ 1.43.11.3.ts .. 1.43.14.3.ts ]	FIXED: no-biggs
+[ 1.43.15.3.ts .. 1.43.45.2.ts ]	NIXED: biggs
+[ 1.43.46.2.ts .. 1.45.03.6.ts ]	
+[ 1.45.04.1.ts .. 1.45.08.8.ts ]	FIXED: xwings-leaving-yavin
+[ 1.45.09.4.ts .. 1.45.21.5.ts ]	
+[ 1.45.22.1.ts .. 1.45.32.1.ts ]	FIXED: xwings-rounding-yavin
+[ 1.45.32.9.ts .. 1.46.20.7.ts ]	
+[ 1.46.21.6.ts .. 1.46.23.2.ts ]	FIXED: dogfight0
+[ 1.46.23.6.ts .. 1.46.30.7.ts ]	
+[ 1.46.31.5.ts .. 1.46.32.3.ts ]	FIXED: dogfight1
+[ 1.46.33.0.ts .. 1.47.39.1.ts ]	
+[ 1.47.40.0.ts .. 1.47.41.1.ts ]	FIXED: dogfight2
+[ 1.47.42.0.ts .. 1.48.18.2.ts ]	
+[ 1.48.18.8.ts .. 1.48.31.8.ts ]	FIXED: dogfight3
+[ 1.48.32.4.ts .. 1.49.08.2.ts ]	
+[ 1.49.08.9.ts .. 1.49.11.9.ts ]	FIXED: dogfight4
+[ 1.49.12.9.ts .. 2.04.45.3.ts ]	
