@@ -263,11 +263,11 @@ function track-replacements(){
   local RITE=${2:? "Usage: $0 [first clip to track] [last clip to track] [label]"}
   local LABEL=${3:?"Usage: $0 [first clip to track] [last clip to track] [label]"}
 
-  touch                   REPLACED.txt;
+  touch                   $THISDIR/REPLACED.txt;
   for TS in $(clips $LEFT $RITE); do
-    echo "$TS $LABEL"  >> REPLACED.txt;
+    echo "$TS $LABEL"  >> $THISDIR/REPLACED.txt;
   done
-  sort REPLACED.txt -u -o REPLACED.txt;
+  sort REPLACED.txt -u -o $THISDIR/REPLACED.txt;
 }
 
 function replacement-audio(){
@@ -615,7 +615,7 @@ function assemble(){
 
   # get list of all clips that have been replaced with 1977 video
   $FIXED=[];
-  foreach (file('REPLACED.txt',FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES) as $line){
+  foreach (file(getenv('THISDIR').'/REPLACED.txt',FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES) as $line){
     list($k,$v) = explode(' ', $line);
     $FIXED[$k] = "FIXED: $v";
   }
@@ -723,14 +723,13 @@ function assemble(){
     }
     $seams[] = basename($file);
   }
-  file_put_contents("CONCATS.txt", "file '" . join("'\nfile '", $seams)."'\n");
-  file_put_contents("edl.txt", $EDL);
+  file_put_contents(getenv("THISDIR")."/CONCATS.txt", "file '" . join("'\nfile '", $seams)."'\n");
+  file_put_contents(getenv("THISDIR")."/EDL.txt", $EDL);
 EOF
 
   # NOW CONCAT EVERYTHING TOGETHER!
   cd $D2/tmp/;
-  cp $D1/tmp/CONCATS.txt .;
-  cp $D1/tmp/edl.txt $THISDIR/;
+  cp $THISDIR/CONCATS.txt .;
   ffmpeg -f concat -i CONCATS.txt -codec copy -f mpegts -fflags +genpts -async 1 $D1/tmp/FILM.ts;
   cd -;
 
@@ -739,5 +738,6 @@ EOF
   echo; echo; echo; echo; echo;
 }
 
-
-main;
+if [ "$#" == 0 ]; then
+  main;
+fi
