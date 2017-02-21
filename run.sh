@@ -647,13 +647,18 @@ function assemble(){
   # now concat/copy adjacent "clean" clips to new (sometimes monster big) files
   # so we can do a final single "concat" with the clean clips and replaced clips
   # (and blow up this place and all go home)
+  $EDL = ltrim("
+###############################################################################################
+# Edit Decision List -- when all is said and done, this is what we've done from run.sh script:
+###############################################################################################
+");
   $seams = [];
   foreach ($groups as $group){
     list($clips, $state) = $group;
     $clips = trim($clips);
     $left = strtok($clips, " ");
     $rite = strrev(strtok(strrev($clips), " "));
-    echo "[ $left .. $rite ]\t$state\n";
+    $EDL .= "[ $left .. $rite ]\t$state\n";
 
     if (strpos($state, 'NIXED: ')!==FALSE)
       continue; // throwing out
@@ -682,11 +687,13 @@ function assemble(){
     $seams[] = basename($file);
   }
   file_put_contents("CONCATS.txt", "file '" . join("'\nfile '", $seams)."'\n");
+  file_put_contents("edl.txt", $EDL);
 EOF
 
   # NOW CONCAT EVERYTHING TOGETHER!
   cd $D2/tmp/;
   cp $D1/tmp/CONCATS.txt .;
-  ffmpeg -y -f concat -i CONCATS.txt -codec copy -f mpegts -fflags +genpts -async 1 $D1/tmp/FILM.ts;
+  cp $D1/tmp/edl.txt $THISDIR/;
+  ffmpeg -f concat -i CONCATS.txt -codec copy -f mpegts -fflags +genpts -async 1 $D1/tmp/FILM.ts;
   cd -;
 }
