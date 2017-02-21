@@ -40,8 +40,44 @@ export MD5_MKV="b5519a30445291665df1a1aae8107c9e"; # if you want to verify your 
 # xxx to avoid "bloops" when doing REMOVE and REPLACE operations, try keeping REMOVED keyframe and merge into the _prior_ GOP since B-frames, eg:
 #  ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
 
-export THISDIR=$(dirname "$0");
-echo "SCRIPT DIR: $THISDIR";
+export THISDIR=$(dirname "$0");  echo "SCRIPT DIR: $THISDIR";
+
+
+function main(){
+  # setup, extract GOPs (Groups Of Pictures) from bluray
+  setup;
+  extraction;
+  segment;
+
+  # do the easiest stuff first -- move all GOPs we're tossing to a trash bin folder..
+  cuts;
+
+  # now the fun / hard / interesting stuff -- scenes being replaced
+  credits;
+  r2-entering-canyon;
+  patrol-dewbacks;
+  kenobi-hut;
+  eisley;
+  cantina-bagpiper;
+  cantina-snaggletooth;
+  cantina-outside;
+  greedo; # able to just shorten the (edited) bluray GOP
+  search-eisley;
+  jabba; # some minor necessary rework around ends of removed GOPs
+  stormtroopers-deadend;
+  falcon-arrives-yavin;
+  no-biggs;
+  xwings-leaving-yavin;
+  xwings-rounding-yavin;
+  dogfight0;
+  dogfight1;
+  dogfight2;
+  dogfight3;
+  dogfight4;
+
+  # now put it all back together into one single file
+  assemble;
+}
 
 
 ###################################################################################################################
@@ -66,7 +102,7 @@ function extraction(){
   ffmpeg -y -i $DIR/00300.m2ts -c copy -map 0:0 -map 0:1 $D2/starwars-1080p-A.m2ts;
   ffmpeg -y -i $DIR/00301.m2ts -c copy -map 0:0 -map 0:1 $D2/starwars-1080p-B.m2ts;
 
-  # losslessly concat -- and nicely reset PTS/DTS in 2nd piece (to come right after 1st piece)
+  # losslessly concat
   cd $D2;
   ( echo "file 'starwars-1080p-A.m2ts'";
     echo "file 'starwars-1080p-B.m2ts'" ) >| concat.txt;
@@ -208,6 +244,7 @@ function seamTS(){
 }
 
 function test-seam(){
+  # helps verify that results of "seamTS" will allow a decent replacment into the rest of the film
   local LEFT=${1:?   "Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
   local RITE=${2:?   "Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
   local OUTNAME=${3:?"Usage: $0 [first clip to precede] [last clip to follow] [output name]"}
@@ -380,7 +417,7 @@ function cantina-outside(){
 function greedo(){
   # clip of controversy -- SPOILER ALERT -- we never see shots in 1977 at all!
   LEFT=0.50.54.7.ts;
-  RITE=0.50.55.5.ts; # **VERY** weird -- next clip PTS are *before* $TRIM for the most part -- so "seam" it special-ly
+  RITE=0.50.55.5.ts; # **VERY** weird -- next clip PTS are *before* TRIM for the most part -- so "seam" it special-ly
 
   if [ ! -e $LEFT.ORIG ]; then
     # only do this step once -- not rerunnable (without manually reversing ;-)
@@ -409,7 +446,7 @@ function search-eisley(){
 
 
 function jabba(){
-  # "These are the bounty hunters you are looking for"
+  # "These are not the bounty hunters you are looking for."
   #
   # The GOPs are being _very_ stubborn around the range I want to remove.  Hello "open GOP" bluray (facepalm)
   # http://www.chaneru.com/Roku/HLS/X264_Settings.htm#open-gop
@@ -455,7 +492,7 @@ function jabba(){
 
   seamTS $LEFT $RITE;
   convert -size 1920x1080  xc:black black.png;
-  ffmpeg -y -i seam.ts -i $THISDIR/black.png -copyts -q:v 0 -filter_complex "[0:v][1:v]overlay=enable='between(n,8,19)'[out]" -map "[out]" -map 0:a:0 -c:a:0 copy  $0.ts;
+  ffmpeg -y -i seam.ts -i black.png -copyts -q:v 0 -filter_complex "[0:v][1:v]overlay=enable='between(n,8,19)'[out]" -map "[out]" -map 0:a:0 -c:a:0 copy  $0.ts;
 }
 
 
@@ -696,4 +733,11 @@ EOF
   cp $D1/tmp/edl.txt $THISDIR/;
   ffmpeg -f concat -i CONCATS.txt -codec copy -f mpegts -fflags +genpts -async 1 $D1/tmp/FILM.ts;
   cd -;
+
+  echo; echo; echo; echo; echo;
+  echo "EDITED MOVIE IS NOW AT: $D1/tmp/FILM.ts"
+  echo; echo; echo; echo; echo;
 }
+
+
+main;
