@@ -35,10 +35,7 @@ As is well-known, they added many previously deleted scenes (eg: Biggs and Luke 
 ![edit timeline](edit.png "edit timeline")
 
 
-## work in progress -- STAY TUNED!
-* _all the removed CG is done_
-* _all the replaced scenes are done tested_
-* _just need to assemble them all into single big file and test!_
-* _... then I have to fight my PS3 8-)_
+## It's done!  You get a .ts single file out now, that you can remux to .mp4 or .mkv easily if you like.
+I am next working on trying to burn out a bluray disc so I can get _glorious_ 24fps 1080p out of my PS3 -- and bluray discs are my only hope...
 
 ## See the [run.sh](run.sh) script for the details!
