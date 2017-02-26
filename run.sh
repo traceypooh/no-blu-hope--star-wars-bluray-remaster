@@ -12,15 +12,16 @@
 #
 ###################################################################################################################
 #
-# Assumes you have an .iso burned from your bluray, located here:
-export ISO=star-wars-bluray.iso; #33GB
-# config D1 and D2 to scratch drives -- 2 is ideal (for i/o speed) but can be same
+# config D1 and D2 to scratch drives -- 2 is ideal (for i/o speed) but can also be the same
 export D1=/Volumes/bff-bup;
 export D2=/Volumes/bff;
-export OVID="$D1/tmp/negative1.mkv"; # silver screen negative1 Jan 11,2016 first release (22GB)
+export BLUR="$D1/star-wars-bluray.iso";   # your ripped .iso from your bluray disc lives here (33GB)
+export OVID="$D1/tmp/negative1.mkv";      # silver screen team negative1 Jan 2016 v1.0 first release (22GB)
+export OVID="$D1/tmp/negative1-v1.6.iso"; # silver screen team negative1 Jun 2016 v1.6 sixth release (38GB)
 #
-export MD5_ISO="bdd5495e48f6726ff25f72421f9976f2"; # if you want to verify your files for 100% compatibility below
-export MD5_MKV="b5519a30445291665df1a1aae8107c9e"; # if you want to verify your files for 100% compatibility below
+export MD5_BLUR="bdd5495e48f6726ff25f72421f9976f2"; # if you want to verify your files for 100% compatibility below
+export MD5_OVID="b5519a30445291665df1a1aae8107c9e"; # if you want to verify your files for 100% compatibility below
+export MD5_OVID="f9556d51e8cd6647ac076d7b8284f896"
 
 ###################################################################################################################
 
@@ -41,8 +42,8 @@ export THISDIR=$(dirname "$0");  echo "SCRIPT DIR: $THISDIR";
 function main(){
   # setup, extract GOPs (Groups Of Pictures) from bluray
   setup;
-  extraction;
-  segment;
+  extract-BLUR;
+  extract-OVID;
 
   # do the easiest stuff first -- move all GOPs we're tossing to a trash bin folder..
   cuts;
@@ -88,41 +89,43 @@ function setup(){
   # brew install mlt;  # handy for editing, playback, and especially playing one frame at a time back/forth
 }
 
-function extraction(){
+function extract-BLUR(){
   DIR=/Volumes/CDROM/BDMV/STREAM/; # this is where "open" (next) will mount .iso to
 
-  open $ISO; # mount .iso image
+  open $BLUR; # mount .iso image
+
+  mkdir -p $D1/tmp;
+  cd       $D1/tmp;
 
   # losslessly keep (just) the 6.1 DTS audio and video -- it comes in ~147sec first piece; then rest of film
-  ffmpeg -y -i $DIR/00300.m2ts -c copy -map 0:0 -map 0:1 $D2/starwars-1080p-A.m2ts;
-  ffmpeg -y -i $DIR/00301.m2ts -c copy -map 0:0 -map 0:1 $D2/starwars-1080p-B.m2ts;
-
-  # losslessly concat
-  cd $D2;
-  ( echo "file 'starwars-1080p-A.m2ts'";
-    echo "file 'starwars-1080p-B.m2ts'" ) >| concat.txt;
-  ffmpeg -y -f concat -i concat.txt -codec copy -f mpegts $D1/starwars-1080p.m2ts;
-  rm concat.txt;
-  chmod ugo-wx $D1/starwars-1080p.m2ts;
-}
-
-
-# (losslessly) split the official bluray film version into files -- one per GOP
-function segment(){
-  cd $D1;
-  mkdir -p tmp;
-  cd tmp;
-
+  # (losslessly) split the official bluray film version into files -- one per GOP
   # Split/segment to a supersmall duration -- but in reality will default to never cutting up a GOP.
   # So, will start each segment with a keyframe, and have 1 keyframe and 1 GOP per segment (output file).
-  ffmpeg -i ../starwars-1080p.m2ts -c copy -f hls -c copy -hls_time 0.1 -hls_segment_filename '%04d.ts' out.m3u8
+  cat  $DIR/00300.m2ts  $DIR/00301.m2ts | ffmpeg -f mpegts -i - -f hls -c copy -hls_time 0.1 -map 0:0 -map 0:1 -hls_segment_filename '%04d.ts' out.m3u8;
 
-  # Display/manually check segment times -- optional
-  # NOTE: for vpackets output, we use column 5, which is PTS.   (DTS, column 7, is _Decode_ TimeStamp)
-  # Adjacent PTS go negative when B-frames, but PTS are always monotonic between keyframes.
-  vpackets *ts |egrep 'K$'|cut -d'|' -f5|cut -f2 -d=|php -R 'echo number_format($argn,1,".","")."\n";';
+  rename-clips-to-timecodes;
+}
 
+function extract-OVID(){
+  DIR=/Volumes/Star_Wars_SSE_TN1_v1_6/BDMV/STREAM/; # this is where "open" (next) will mount .iso to
 
+  open $OVID; # mount .iso image
+
+  mkdir -p $D1/tmp/O;
+  cd       $D1/tmp/O;
+
+  # NOTE: losslessly concat-ing the two main pieces into single stream fed into segmenter
+  # (losslessly video; recode audio -- audio wont be used in final product)) split the film into files -- one per GOP
+  # Split/segment to a supersmall duration -- but in reality will default to never cutting up a GOP.
+  # So, will start each segment with a keyframe, and have 1 keyframe and 1 GOP per segment (output file).
+  cat  $DIR/00000.m2ts $DIR/00004.m2ts | ffmpeg -f mpegts -i - -f hls -c copy -hls_time 0.1 -map 0:0 -map 0:1 -hls_segment_filename '%04d.ts' -c:a ac3 out.m3u8;
+
+  rename-clips-to-timecodes;
+
+  cd -;
+}
+
+function rename-clips-to-timecodes(){
   # Convert each segment to seconds into the film for easier editing/grokking
   # Extract PTS of (1st/only) keyframe from sources, eg: "13.092351"
   # First, make like "0013.1" (round, 1 decimal, 0-padded 4 digits lead).
@@ -134,7 +137,7 @@ function segment(){
 
   echo "Renaming files: ";
   foreach (glob("????.ts") as $fi){
-    $PTS = `printf '%06.1f' $(vpackets $fi 2>/dev/null |egrep -m1 'flags=K_*$'|cut -d'|' -f5|cut -f2 -d=)`;
+    $PTS = `printf '%06.1f' $(ffprobe -v 0 -hide_banner -select_streams v -show_packets -print_format compact $fi 2>/dev/null |egrep -m1 'flags=K_*$'|cut -d'|' -f5|cut -f2 -d=)`;
     if (!preg_match("/^(\d\d\d\d\.\d)$/", $PTS, $mat))
       throw new Exception("uho bad $PTS");
     $TO = preg_replace("/^0/","",str_replace(":",".",Video::hms($mat[1],0,1)));
