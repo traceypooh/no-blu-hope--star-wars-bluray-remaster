@@ -253,11 +253,11 @@ function track-replacements(){
   local RITE=${2:? "Usage: $0 [first clip to track] [last clip to track] [label]"}
   local LABEL=${3:?"Usage: $0 [first clip to track] [last clip to track] [label]"}
 
-  touch                   $THISDIR/REPLACED.txt;
+  touch                            $THISDIR/REPLACED.txt;
   for TS in $(clips $LEFT $RITE); do
-    echo "$TS $LABEL"  >> $THISDIR/REPLACED.txt;
+    echo "$TS $LABEL"  >>          $THISDIR/REPLACED.txt;
   done
-  sort REPLACED.txt -u -o $THISDIR/REPLACED.txt;
+  sort $THISDIR/REPLACED.txt -u -o $THISDIR/REPLACED.txt;
 }
 
 function replacement-audio(){
@@ -340,7 +340,7 @@ function credits(){
 
 function r2-entering-canyon(){
   replacement-audio  0.11.20.6.ts  0.11.26.6.ts  $0;  #6.7s
-  replacement-video  723.321  110  $0  end-non-keyframe; # go SHORTER (4.8s) to end replacement earlier
+  replacement-video  0.11.20.8.ts  0.11.25.7.ts  $0;
 }
 
 function patrol-dewbacks(){
@@ -349,10 +349,8 @@ function patrol-dewbacks(){
 }
 
 function kenobi-hut(){
-  # NOTE: we need to go 1 bluray GOP backwards (than 0.32.34.6.ts) since the 1977 GOP spread is bigger
-  # NOTE: go 1 bluray GOP extra (than 0.32.38.4.ts) to get A/V to seam better
-  replacement-audio  0.32.33.6.ts  0.32.39.1.ts  $0;
-  replacement-video  1973.779  140  $0; # get slightly more vid, (exactly) 7 keyframes and 6 GOP cleanly
+  replacement-audio  0.32.34.6.ts  0.32.38.4.ts  $0;
+  replacement-video  0.32.14.1.ts  0.32.17.9.ts  $0;
 }
 
 function eisley(){
