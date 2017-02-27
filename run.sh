@@ -111,8 +111,8 @@ function extract-OVID(){
 
   open $OVID; # mount .iso image
 
-  mkdir -p $D1/tmp/O;
-  cd       $D1/tmp/O;
+  mkdir -p $D1/tmp/o;
+  cd       $D1/tmp/o;
 
   # NOTE: losslessly concat-ing the two main pieces into single stream fed into segmenter
   # (losslessly video; recode audio -- audio wont be used in final product)) split the film into files -- one per GOP
@@ -198,33 +198,25 @@ function clips(){
   fi
 }
 
-# manually used to more easily determine good keyframes and range of GOPs from 1977 version to use for replacement
-function options77(){
-  HMS_OR_SEC=${1:?"Usage: $0 [HH:MM:SS or H:MM:SS or seconds] <optional number frames to check, default 1000>"}
-  NFRAMES=${2:-"1000"};
+function oclips(){
+  set +x;
+  local LEFT=${1:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
+  local RITE=${2:?"Usage: clips [start .ts clip] [end .ts clip OR -[INT] OR [INT]]  Returns range of clips (inclusive) between them"}
 
-  if [[ $HMS_OR_SEC =~ : ]]; then
-    HMS=$HMS_OR_SEC;
-    SEC=$(echo $HMS |php -R 'require_once(getenv("THISDIR")."/Video.inc"); echo Video::hms2sec($argn);');
+  LEFT=$(echo "$LEFT" |perl -pe 's/\.ts$//');
+  RITE=$(echo "$RITE" |perl -pe 's/\.ts$//');
+
+  if [[ $RITE =~ \\. ]]; then
+    # return the filenames in the wanted time range
+    /bin/ls o/?.??.??.?.ts |fgrep -A100000 o/$LEFT.ts |fgrep -B10000 o/$RITE.ts;
+  elif [[ $RITE =~ \\- ]]; then
+    # eg "-10" which means return (up to) 10 clips -- the 9 clips before $LEFT and $LEFT
+    /bin/ls o/?.??.??.?.ts |fgrep -B100000 o/$LEFT.ts |tail  $RITE;
   else
-    SEC=$HMS_OR_SEC;
-    HMS=$(echo $SEC |php -R 'require_once(getenv("THISDIR")."/Video.inc"); echo Video::hms($argn);');
+    # eg "10" which means return (up to) 10 clips -- $LEFT and the 9 clips after $LEFT
+    /bin/ls o/?.??.??.?.ts |fgrep -A100000 o/$LEFT.ts |head -$RITE;
   fi
-
-  echo SEC=$SEC;
-  echo HMS=$HMS;
-
-  if [ ! -e negative1.packets ]; then
-    echo "(ONETIME) GENERATING PACKETS INFO FOR $OVID -- this will take awhile..."
-    vpackets "$OVID" > negative1.packets;
-  fi
-
-  PTS=$(egrep 'K_*$' negative1.packets |fgrep -m1 pts_time=$SEC |cut -f5 -d'|' |cut -f2 -d=);
-
-  # now show a bunch of options of durations and frame counts for keyframe-to-keyframe clipping
-  fgrep -A$NFRAMES pts_time=$PTS negative1.packets |egrep -n 'K_*$' |cut -f1,5 -d'|' |tr : = |cut -f1,3 -d= |tr = ' '|phpR 'list($f,$sec)=explode(" ",$argn); if (!$start) $start=$sec; echo "frames=$f\tduration=".round($sec-$start,4)."\tstart=$sec\n";';
 }
-
 
 function seamTS(){
   # takes a list of clips and rebases each clip's timestamps with a lossless "concat" operation
@@ -274,9 +266,7 @@ function replacement-audio(){
   export RITE=${2:? "Usage: $0 [first clip to replace] [last clip to replace] [label]"}
   export LABEL=${3:?"Usage: $0 [first clip to replace] [last clip to replace] [label]"}
 
-  typeset -a REPLACE; # array variable
-  REPLACE=( $( clips $LEFT $RITE ) );
-  cat $REPLACE >| blu.ts;
+  cat $( clips $LEFT $RITE ) >| blu.ts;
 
   track-replacements $LEFT $RITE $LABEL;
 
@@ -287,22 +277,14 @@ function replacement-audio(){
 function replacement-video(){
   # Copies (just)  the 1977 video for a portion we are replacing.
   # Uses $LEFT and $RITE, merging with "audio.ts", from prior "replacement-audio" step to OUTNAME.ts
-
-  SEEK=${1:?   "Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
-  FRAMES=${2:? "Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
-  OUTNAME=${3:?"Usage: $0 [seconds into 1977 film] [number of frames to grab] [output file basename]"}
-  ENDKEY=${4:-"yes"};
+  LEFTV=${1:?  "Usage: $0 [first clip to replace] [last clip to replace] [output file basename]"}
+  RITEV=${2:?  "Usage: $0 [first clip to replace] [last clip to replace] [output file basename]"}
+  OUTNAME=${3:?"Usage: $0 [first clip to replace] [last clip to replace] [output file basename]"}
   # To avoid "bloops" when doing REMOVE and REPLACE operations, could try keeping the REMOVED keyframe and merge into
   # the _prior_ GOP due to B-frames, etc.  eg:
   #   ffmpeg -i nix/0.15.10.3.ts  -c copy  -frames 1 -copyts -shortest  0.15.10.3.ts
 
-  # NOTE: using quick seek (deliberately) here since we have listed where keyframes are in $OVID
-  ffmpeg -y -ss $SEEK -i $OVID  -frames $FRAMES  -an -c:v copy  video.ts;
-
-  if [ "$ENDKEY" = "yes" ]; then
-    vpackets video.ts |tail -1 |egrep '=K_*$';
-    if [ "$?" != "0" ]; then echo; echo "FATAL video.ts didnt end in keyframe"; return; fi
-  fi
+  cat $( oclips $LEFTV $RITEV ) | ffmpeg -y -f mpegts -i -  -an -c:v copy  video.ts;
 
   # merge A/V
   # NOTE: use -shortest to drop longer audio/video
@@ -311,7 +293,7 @@ function replacement-video(){
   test-seam $LEFT $RITE $OUTNAME;
 
   # cleanup
-  rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/;
+  #rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/;
 }
 
 
@@ -353,7 +335,7 @@ EOF
 function credits(){
   # start of 42s was observed from manually watching $OVID
   replacement-audio  0.00.01.4.ts  0.01.54.7.ts  $0; #114.1s
-  replacement-video  42.975  2754  $0;
+  replacement-video  0.00.01.4.ts  0.01.54.3.ts  $0;
 }
 
 function r2-entering-canyon(){
@@ -363,7 +345,7 @@ function r2-entering-canyon(){
 
 function patrol-dewbacks(){
   replacement-audio  0.15.25.2.ts  0.15.44.8.ts  $0; #20.5s
-  replacement-video  951.758  507  $0;
+  replacement-video  0.15.10.5.ts  0.15.30.3.ts  $0;
 }
 
 function kenobi-hut(){
@@ -399,20 +381,21 @@ function cantina-bagpiper(){
   # 1977 had a red-eyed "werewolf" growl directly at camera.
   # bluray repalced with a "bagpiper"-esque hookah pipe smoking CG character.
   replacement-audio  0.45.02.0.ts  0.45.04.8.ts  $0;
-  replacement-video  2690.495  93  $0; # get slightly more vid, (exactly) 5 keyframes and 4 GOPs cleanly
+  replacement-video  0.44.10.0.ts  0.44.12.0.ts  $0;
 }
 
 function cantina-snaggletooth(){
   # NOTE: we'll capture slightly LESS video than we will be replacing to get (exactly) 4 keyframes and 3 GOPs cleanly
   #       because o/w we have a rough seam/transition (and ~0.5s audio being removed ends up OK -- choices!)
   replacement-audio  0.46.15.3.ts  0.46.18.2.ts  $0;
-  replacement-video  2764.027  70  $0;
+  replacement-video  0.45.23.3.ts  0.45.26.1.ts  $0;
 }
 
-function cantina-outside(){
+function cantina-outside(){ #xxx
   # CG lizards with disembarking troopers added when threepio says "I dont like the look of this" outside
   replacement-audio  0.47.35.2.ts  0.47.41.9.ts  $0;
-  replacement-video  2844.023  185  $0; # get slightly more vid, (exactly) 9 keyframes and 8 GOPs cleanly
+  replacement-video  0.46.42.7.ts  0.46.49.6.ts  $0;
+ #replacement-video  0.46.41.7.ts  0.46.49.6.ts  $0;
 }
 
 
@@ -441,8 +424,8 @@ function greedo(){
 
 function search-eisley(){
   # there's an added annoying CG flying droid "helping" the troopers search.  we shall swat it.
-  replacement-audio  0.51.47.7.ts  0.51.57.7.ts  $0; #10.9s
-  replacement-video  3096.025  255  $0; # cut video slightly shorter
+  replacement-audio  0.51.47.7.ts  0.51.58.8.ts  $0; # 1 more GOP than ideal (open GOP issues; v. slight artifact now)
+  replacement-video  0.50.55.7.ts  0.51.05.7.ts  $0;
 }
 
 
