@@ -484,12 +484,12 @@ function stormtroopers-deadend(){
   # galley of stormtroopers and such, now can we?
   # In '77 Han runs around corner, only to find the troopers hav hit a deadend and they need to fight their way out...
   replacement-audio  1.27.42.5.ts  1.27.43.5.ts  $0; # 1.9s
-  replacement-video  5150.53   47  $0; # this gets us 3 keyframes bookending 2 GOPs, from 1977 video
+  replacement-video  1.25.13.3.ts  1.25.14.4.ts  $0;
 }
 
 function falcon-arrives-yavin(){
   replacement-audio  1.38.08.2.ts  1.38.37.4.ts  $0; #29.7s
-  replacement-video  5776.453  715  $0;
+  replacement-video  1.35.39.1.ts  1.36.08.2.ts  $0;
 }
 
 function no-biggs(){
@@ -525,32 +525,34 @@ function no-biggs(){
 
 function xwings-leaving-yavin(){
   replacement-audio  1.45.04.1.ts  1.45.08.8.ts  $0; #5.2s
-  replacement-video  6166.342  139  $0;
+  replacement-video  1.42.09.1.ts  1.42.13.9.ts  $0;
 }
 
 function xwings-rounding-yavin(){
   replacement-audio  1.45.22.1.ts  1.45.32.1.ts  $0; #10.7s
-  replacement-video  6185.027  236  $0; # get 12 keyframes / 11 GOPs
+  replacement-video  1.42.27.2.ts  1.42.37.4.ts  $0;
 }
 
 function dogfight0(){
   replacement-audio  1.46.21.6.ts  1.46.23.2.ts  $0; # 2s
-  replacement-video  6244.504  52  $0;
+  # could go either way here -- pick former (scene cut slightly early) if grief! xxx
+# replacement-video  1.43.27.7.ts  1.43.27.7.ts  $0;
+  replacement-video  1.43.26.8.ts  1.43.27.7.ts  $0;
 }
 
-function dogfight1(){ # xxx there is a slight tower firing repeat here..
+function dogfight1(){
   replacement-audio  1.46.31.5.ts  1.46.32.3.ts  $0; # 1.5s
-  replacement-video  6253.346  47  $0;
+  replacement-video  1.43.36.6.ts  1.43.37.4.ts  $0;
 }
 
 function dogfight2(){
   replacement-audio  1.47.40.0.ts  1.47.41.1.ts  $0; #1.9s
-  replacement-video  6322.331  48  $0;
+  replacement-video  1.44.45.1.ts  1.44.46.1.ts  $0;
 }
 
 function dogfight3(){
-  replacement-audio  1.48.18.8.ts  1.48.31.8.ts  $0; #13.6s
-  replacement-video  6361.329  307  $0; #12.8s
+  replacement-audio  1.48.18.8.ts  1.48.31.1.ts  $0;
+  replacement-video  1.45.23.9.ts  1.45.35.3.ts  $0;
 }
 
 function dogfight4(){
