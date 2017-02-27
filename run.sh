@@ -16,12 +16,10 @@
 export D1=/Volumes/bff-bup;
 export D2=/Volumes/bff;
 export BLUR="$D1/star-wars-bluray.iso";   # your ripped .iso from your bluray disc lives here (33GB)
-export OVID="$D1/tmp/negative1.mkv";      # silver screen team negative1 Jan 2016 v1.0 first release (22GB)
 export OVID="$D1/tmp/negative1-v1.6.iso"; # silver screen team negative1 Jun 2016 v1.6 sixth release (38GB)
 #
 export MD5_BLUR="bdd5495e48f6726ff25f72421f9976f2"; # if you want to verify your files for 100% compatibility below
-export MD5_OVID="b5519a30445291665df1a1aae8107c9e"; # if you want to verify your files for 100% compatibility below
-export MD5_OVID="f9556d51e8cd6647ac076d7b8284f896"
+export MD5_OVID="f9556d51e8cd6647ac076d7b8284f896"; # if you want to verify your files for 100% compatibility below
 
 ###################################################################################################################
 
