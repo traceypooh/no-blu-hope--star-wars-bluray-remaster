@@ -557,7 +557,7 @@ function dogfight3(){
 
 function dogfight4(){
   replacement-audio  1.49.08.9.ts  1.49.11.9.ts  $0;
-  replacement-video  6411.128  94  $0;
+  replacement-video  1.46.14.0.ts  1.46.17.0.ts  $0;
 }
 
 function NOT-USED-patrol-dewbacks-using-bluray-video(){ # had issues
