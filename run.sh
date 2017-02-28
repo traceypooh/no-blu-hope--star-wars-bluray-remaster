@@ -15,8 +15,8 @@
 # config D1 and D2 to scratch drives -- 2 is ideal (for i/o speed) but can also be the same
 export D1=/Volumes/bff-bup;
 export D2=/Volumes/bff;
-export BLUR="$D1/star-wars-bluray.iso";   # your ripped .iso from your bluray disc lives here (33GB)
-export OVID="$D1/tmp/negative1-v1.6.iso"; # silver screen team negative1 Jun 2016 v1.6 sixth release (38GB)
+export BLUR="$D1/star-wars-bluray.iso"; # change to where your ripped .iso from your bluray disc lives (33GB)
+export OVID="$D1/negative1-v1.6.iso";   # change to silver screen team negative1 Jun 2016 v1.6 sixth release (38GB)
 #
 export MD5_BLUR="bdd5495e48f6726ff25f72421f9976f2"; # if you want to verify your files for 100% compatibility below
 export MD5_OVID="f9556d51e8cd6647ac076d7b8284f896"; # if you want to verify your files for 100% compatibility below
@@ -330,7 +330,7 @@ EOF
 }
 
 
-function credits(){
+function credits(){ #xxx seam at end
   # start of 42s was observed from manually watching $OVID
   replacement-audio  0.00.01.4.ts  0.01.54.7.ts  $0; #114.1s
   replacement-video  0.00.01.4.ts  0.01.54.3.ts  $0;
@@ -368,7 +368,7 @@ function eisley(){
   mv  seam.ts  audio.ts;
 
   export LEFT=$LEFTSAVE; # this allows seam preview to be made with correct preceding clips
-  replacement-video  2587.725  2258  $0;
+  replacement-video  0.42.27.7.ts  0.44.00.2.ts  $0;
 
   rm a.ts b.ts c.ts;
 }

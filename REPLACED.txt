@@ -121,7 +121,6 @@
 0.11.24.9.ts r2-entering-canyon
 0.11.25.9.ts r2-entering-canyon
 0.11.26.6.ts r2-entering-canyon
-0.11.27.2.ts r2-entering-canyon
 0.15.25.2.ts patrol-dewbacks
 0.15.26.2.ts patrol-dewbacks
 0.15.27.2.ts patrol-dewbacks
@@ -144,14 +143,12 @@
 0.15.42.8.ts patrol-dewbacks
 0.15.43.8.ts patrol-dewbacks
 0.15.44.8.ts patrol-dewbacks
-0.32.33.6.ts kenobi-hut
 0.32.34.6.ts kenobi-hut
 0.32.35.1.ts kenobi-hut
 0.32.35.5.ts kenobi-hut
 0.32.36.6.ts kenobi-hut
 0.32.37.6.ts kenobi-hut
 0.32.38.4.ts kenobi-hut
-0.32.39.1.ts kenobi-hut
 0.42.49.1.ts eisley
 0.42.50.1.ts eisley
 0.42.51.1.ts eisley
@@ -283,6 +280,7 @@
 0.51.55.8.ts search-eisley
 0.51.56.8.ts search-eisley
 0.51.57.7.ts search-eisley
+0.51.58.8.ts search-eisley
 0.52.41.1.ts jabba
 0.54.13.8.ts jabba
 0.54.14.9.ts jabba
@@ -365,7 +363,6 @@
 1.48.29.5.ts dogfight3
 1.48.30.2.ts dogfight3
 1.48.31.1.ts dogfight3
-1.48.31.8.ts dogfight3
 1.49.08.9.ts dogfight4
 1.49.09.9.ts dogfight4
 1.49.11.0.ts dogfight4
