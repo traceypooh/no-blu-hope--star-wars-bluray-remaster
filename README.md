@@ -13,7 +13,9 @@
 # No Blu Hope
 
 ## Background
-The bluray release of the first film was part of a ![$10M restoration project](http://fd.noneinc.com/secrethistoryofstarwarscom/secrethistoryofstarwars.com/savingstarwars.html) of the updated 1977 version of the film.
+The bluray release of the first film was part of a
+[$10M restoration project](http://fd.noneinc.com/secrethistoryofstarwarscom/secrethistoryofstarwars.com/savingstarwars.html) of the updated 1977 version of the film.
+
 
 The Lucas teams used multiple "cans" (reels) of film from various sources, un-spliced the negatives and split into various film stock groups, to irreversibly, chemically restore the cells as best they could.
 The results are *spectacular*.
