@@ -91,6 +91,7 @@ function extract-BLUR(){
   DIR=/Volumes/CDROM/BDMV/STREAM/; # this is where "open" (next) will mount .iso to
 
   open $BLUR; # mount .iso image
+  sleep 10;
 
   mkdir -p $D1/tmp;
   cd       $D1/tmp;
@@ -108,6 +109,7 @@ function extract-OVID(){
   DIR=/Volumes/Star_Wars_SSE_TN1_v1_6/BDMV/STREAM/; # this is where "open" (next) will mount .iso to
 
   open $OVID; # mount .iso image
+  sleep 10;
 
   mkdir -p $D1/tmp/o;
   cd       $D1/tmp/o;
