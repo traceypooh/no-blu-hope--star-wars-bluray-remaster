@@ -3,14 +3,14 @@
 ###############################################################################################
 [ 0.00.01.4.ts .. 0.01.54.7.ts ]	FIXED: credits
 [ 0.01.55.7.ts .. 0.11.19.6.ts ]	
-[ 0.11.20.6.ts .. 0.11.27.2.ts ]	FIXED: r2-entering-canyon
-[ 0.11.28.3.ts .. 0.15.09.3.ts ]	
+[ 0.11.20.6.ts .. 0.11.26.6.ts ]	FIXED: r2-entering-canyon
+[ 0.11.27.2.ts .. 0.15.09.3.ts ]	
 [ 0.15.10.3.ts .. 0.15.24.2.ts ]	NIXED: patrol-dewbacks1
 [ 0.15.25.2.ts .. 0.15.44.8.ts ]	FIXED: patrol-dewbacks
 [ 0.15.45.8.ts .. 0.15.51.3.ts ]	NIXED: patrol-dewbacks2
-[ 0.15.51.9.ts .. 0.32.32.6.ts ]	
-[ 0.32.33.6.ts .. 0.32.39.1.ts ]	FIXED: kenobi-hut
-[ 0.32.40.2.ts .. 0.42.48.1.ts ]	
+[ 0.15.51.9.ts .. 0.32.33.6.ts ]	
+[ 0.32.34.6.ts .. 0.32.38.4.ts ]	FIXED: kenobi-hut
+[ 0.32.39.1.ts .. 0.42.48.1.ts ]	
 [ 0.42.49.1.ts .. 0.42.54.1.ts ]	FIXED: eisley
 [ 0.42.55.0.ts .. 0.43.15.4.ts ]	NIXED: entering-mos-eisley
 [ 0.43.16.4.ts .. 0.43.20.0.ts ]	NIXED: entering-mos-eisley3-audio-excess
@@ -26,8 +26,8 @@
 [ 0.47.42.5.ts .. 0.50.53.7.ts ]	
 [ 0.50.54.7.ts .. 0.50.55.5.ts ]	FIXED: greedo
 [ 0.50.56.2.ts .. 0.51.47.2.ts ]	
-[ 0.51.47.7.ts .. 0.51.57.7.ts ]	FIXED: search-eisley
-[ 0.51.58.8.ts .. 0.52.40.1.ts ]	
+[ 0.51.47.7.ts .. 0.51.58.8.ts ]	FIXED: search-eisley
+[ 0.51.59.3.ts .. 0.52.40.1.ts ]	
 [ 0.52.41.1.ts .. 0.52.41.1.ts ]	FIXED: jabba
 [ 0.52.41.7.ts .. 0.54.13.3.ts ]	NIXED: jabba
 [ 0.54.13.8.ts .. 0.54.14.9.ts ]	FIXED: jabba
@@ -51,7 +51,7 @@
 [ 1.46.33.0.ts .. 1.47.39.1.ts ]	
 [ 1.47.40.0.ts .. 1.47.41.1.ts ]	FIXED: dogfight2
 [ 1.47.42.0.ts .. 1.48.18.2.ts ]	
-[ 1.48.18.8.ts .. 1.48.31.8.ts ]	FIXED: dogfight3
-[ 1.48.32.4.ts .. 1.49.08.2.ts ]	
+[ 1.48.18.8.ts .. 1.48.31.1.ts ]	FIXED: dogfight3
+[ 1.48.31.8.ts .. 1.49.08.2.ts ]	
 [ 1.49.08.9.ts .. 1.49.11.9.ts ]	FIXED: dogfight4
 [ 1.49.12.9.ts .. 2.04.45.3.ts ]	
