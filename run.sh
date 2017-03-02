@@ -334,7 +334,7 @@ EOF
 
 function credits(){ #xxx seam at end
   # start of 42s was observed from manually watching $OVID
-  replacement-audio  0.00.01.4.ts  0.01.54.7.ts  $0; #114.1s
+  replacement-audio  0.00.01.4.ts  0.01.54.7.ts  $0;
   replacement-video  0.00.01.4.ts  0.01.54.3.ts  $0;
 }
 
@@ -389,11 +389,11 @@ function cantina-snaggletooth(){
   replacement-video  0.45.23.3.ts  0.45.26.1.ts  $0;
 }
 
-function cantina-outside(){ #xxx
+function cantina-outside(){
   # CG lizards with disembarking troopers added when threepio says "I dont like the look of this" outside
-  replacement-audio  0.47.35.2.ts  0.47.41.9.ts  $0;
+  # NOTE: cut slightly early with a slight jump (pre-outside scene) due to very picky open GOPs..
+  replacement-audio  0.47.33.2.ts  0.47.41.9.ts  $0;
   replacement-video  0.46.42.7.ts  0.46.49.6.ts  $0;
- #replacement-video  0.46.41.7.ts  0.46.49.6.ts  $0;
 }
 
 

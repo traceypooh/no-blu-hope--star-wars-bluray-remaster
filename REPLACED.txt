@@ -259,6 +259,8 @@
 0.46.16.4.ts cantina-snaggletooth
 0.46.17.4.ts cantina-snaggletooth
 0.46.18.2.ts cantina-snaggletooth
+0.47.33.2.ts cantina-outside
+0.47.34.2.ts cantina-outside
 0.47.35.2.ts cantina-outside
 0.47.36.2.ts cantina-outside
 0.47.37.2.ts cantina-outside
