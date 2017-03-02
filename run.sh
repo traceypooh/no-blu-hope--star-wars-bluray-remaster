@@ -334,8 +334,14 @@ EOF
 
 function credits(){ #xxx seam at end
   # start of 42s was observed from manually watching $OVID
-  replacement-audio  0.00.01.4.ts  0.01.54.7.ts  $0;
-  replacement-video  0.00.01.4.ts  0.01.54.3.ts  $0;
+
+  # ideal -but- busted
+  #replacement-audio  0.00.01.4.ts  0.01.54.7.ts  $0;
+  #replacement-video  0.00.01.4.ts  0.01.54.3.ts  $0;
+
+  # works, but cuts v early
+  replacement-audio  0.00.01.4.ts  0.01.52.0.ts  $0;
+  replacement-video  0.00.01.4.ts  0.01.52.3.ts  $0;
 }
 
 function r2-entering-canyon(){
