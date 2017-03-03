@@ -85,6 +85,7 @@ function setup(){
   brew install ffmpeg; # includes ffprobe
 
   # brew install mlt;  # handy for editing, playback, and especially playing one frame at a time back/forth
+  # brew install mpv;  # mplayer fork for mac
 }
 
 function extract-BLUR(){
@@ -468,6 +469,7 @@ function jabba(){
 
   track-replacements  $LEFT  $RITE  $0;
 
+  rm -f 1.ts;
   return;  # remaining not done but left as was 2nd best solution
 
 
@@ -727,6 +729,6 @@ EOF
   echo; echo; echo; echo; echo;
 }
 
-if [ "$#" == 0 ]; then
+if [ "$#" = 0 ]; then
   main;
 fi
