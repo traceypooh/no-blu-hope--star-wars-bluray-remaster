@@ -110,9 +110,6 @@
 0.01.50.3.ts credits
 0.01.51.3.ts credits
 0.01.52.0.ts credits
-0.01.52.6.ts credits
-0.01.53.7.ts credits
-0.01.54.7.ts credits
 0.11.20.6.ts r2-entering-canyon
 0.11.21.6.ts r2-entering-canyon
 0.11.22.2.ts r2-entering-canyon
