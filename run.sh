@@ -243,7 +243,7 @@ function test-seam(){
   # now test it fully seamed in, with 10 clips (~9s) before and after
   # (cat nothing as final arg, in case there are no clips that match (eg: credits has nothing prior, etc.))
   cat $(clips $LEFT -10 |fgrep -v $LEFT) /dev/null >| pre.ts;
-  cat $(clips $RITE  10 |fgrep -v $RITE) /dev/null >| post.ts;
+  cat $(clips $RITE  15 |fgrep -v $RITE) /dev/null >| post.ts;
   seamTS  pre.ts  $OUTNAME.ts  post.ts;
   mv seam.ts $OUTNAME-seamed.ts;
 }
@@ -294,7 +294,7 @@ function replacement-video(){
   test-seam $LEFT $RITE $OUTNAME;
 
   # cleanup
-  #rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/;
+  rm -rf blu.ts audio.ts video.ts pre.ts post.ts seam/;
 }
 
 
