@@ -103,7 +103,7 @@ function extract-BLUR(){
   # So, will start each segment with a keyframe, and have 1 keyframe and 1 GOP per segment (output file).
   cat  $DIR/00300.m2ts  $DIR/00301.m2ts | ffmpeg -f mpegts -i - -f hls -c copy -hls_time 0.1 -map 0:0 -map 0:1 -hls_segment_filename '%04d.ts' out.m3u8;
 
-  rename-clips-to-timecodes;
+  rename-clips-to-timecodes
 }
 
 function extract-OVID(){
@@ -121,7 +121,7 @@ function extract-OVID(){
   # So, will start each segment with a keyframe, and have 1 keyframe and 1 GOP per segment (output file).
   cat  $DIR/00000.m2ts $DIR/00004.m2ts | ffmpeg -f mpegts -i - -f hls -c copy -hls_time 0.1 -map 0:0 -map 0:1 -hls_segment_filename '%04d.ts' -c:a ac3 out.m3u8;
 
-  rename-clips-to-timecodes;
+  rename-clips-to-timecodes
 
   cd -;
 }
@@ -152,6 +152,7 @@ function rename-clips-to-timecodes(){
   echo "\n";
 EOF
 }
+\ # <-- lame, but makes VSCode parsing/colors happy
 
 
 ###################################################################################################################
@@ -717,6 +718,8 @@ function assemble(){
   file_put_contents(getenv("THISDIR")."/CONCATS.txt", "file '" . join("'\nfile '", $seams)."'\n");
   file_put_contents(getenv("THISDIR")."/EDL.txt", $EDL);
 EOF
+\ # <-- lame, but makes VSCode parsing/colors happy
+
 
   # NOW CONCAT EVERYTHING TOGETHER!
   cd $D2/tmp/;
