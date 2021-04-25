@@ -15,6 +15,8 @@
 # config D1 and D2 to scratch drives -- 2 is ideal (for i/o speed) but can also be the same
 export D1=/Volumes/bff-bup/star
 export D2=/Volumes/bff/star
+[ -e /Volumes/FUN/ ]  &&  export D1=/Volumes/FUN/star
+[ -e /Volumes/FUN/ ]  &&  export D2=/Volumes/FUN/star
 export BLUR="$D1/star-wars-bluray.iso" # change to where your ripped .iso from your bluray disc lives (33GB)
 export OVID="$D1/negative1-v1.6.iso"   # change to silver screen team negative1 Jun 2016 v1.6 sixth release (38GB)
 #
